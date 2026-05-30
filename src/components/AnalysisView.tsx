@@ -147,7 +147,7 @@ function normalize(input: any): AnalysisData | null {
 }
 
 export function AnalysisView() {
-  const [data, setData] = useState<AnalysisData | null | undefined>(undefined);
+  const [data, setData] = useState<AnalysisData | undefined>(undefined);
 
   useEffect(() => {
     setData(readAnalysis() ?? MOCK_ANALYSIS);
