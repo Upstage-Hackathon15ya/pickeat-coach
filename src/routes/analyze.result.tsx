@@ -180,18 +180,18 @@ function Result() {
       </main>
 
       <div className="sticky bottom-0 bg-background/95 backdrop-blur px-5 pt-3 pb-6 border-t border-border">
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2">
           <button
             onClick={() => navigate({ to: "/analyze/saved" })}
-            className="flex-[2] h-14 rounded-2xl bg-primary text-primary-foreground text-[15px] font-semibold grid place-items-center"
+            className="h-14 rounded-2xl bg-primary text-primary-foreground text-[15px] font-semibold grid place-items-center"
           >
             먹었어요
           </button>
           <button
-            onClick={() => navigate({ to: "/analyze/saved" })}
-            className="flex-1 h-14 rounded-2xl bg-surface border border-border text-[14px] font-medium grid place-items-center"
+            onClick={() => navigate({ to: "/home" })}
+            className="h-14 rounded-2xl bg-surface border border-border text-[14px] font-medium grid place-items-center"
           >
-            저장만 하기
+            홈으로 가기
           </button>
         </div>
       </div>
