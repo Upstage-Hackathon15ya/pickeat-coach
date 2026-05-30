@@ -60,6 +60,7 @@ function Result() {
   const { from } = Route.useSearch();
   const isFromHome = from === "home";
   const d = MOCK;
+  const v = verdictDisplay[d.verdict.status];
 
   return (
     <AppShell>
