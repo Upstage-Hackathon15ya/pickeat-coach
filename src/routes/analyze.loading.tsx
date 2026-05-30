@@ -6,6 +6,7 @@ import { Mascot } from "@/components/Mascot";
 import { scanNutrition } from "@/lib/n8n";
 import { N8nError } from "@/lib/n8n";
 import { ensureLoadedDataUrl, mergeImagesVertically, ImageNotLoadedError } from "@/lib/image";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/analyze/loading")({
   component: Loading,
