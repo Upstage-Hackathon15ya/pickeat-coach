@@ -47,7 +47,8 @@ function Loading() {
       const raw = localStorage.getItem("onboarding.healthGoal");
       if (raw) {
         const parsed = JSON.parse(raw);
-        userHealthGoal = parsed?.label ?? parsed?.id ?? "";
+        userHealthGoal = parsed?.label ?? parsed?.id ?? "",
+        user_id: payload.user_id;
       }
     } catch {}
 
