@@ -1,5 +1,4 @@
-import { Sparkles, ArrowRight, ImageOff } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Sparkles, ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Mascot } from "@/components/Mascot";
 import { cn } from "@/lib/utils";
@@ -52,6 +51,39 @@ function readAnalysis(): AnalysisData | null {
     return null;
   }
 }
+
+const MOCK_ANALYSIS: AnalysisData = {
+  product: {
+    name: "참치마요 삼각김밥",
+    foodType: "간편식",
+    tags: ["간편식", "삼각김밥"],
+  },
+  verdict: "warn",
+  verdictTitle: "주의",
+  verdictSub: "조금만 드세요 · 나트륨과 지방 함량이 높은 편이에요.",
+  coach:
+    "식사 대용으로는 괜찮지만 나트륨 함량이 높은 편이에요. 오늘 다른 짠 음식과 함께 섭취하는 것은 피하는 것이 좋아요.",
+  nutrition: [
+    { name: "열량", value: "420kcal", status: "보통", tone: "warn" },
+    { name: "탄수화물", value: "46g", status: "보통", tone: "ok" },
+    { name: "단백질", value: "12g", status: "보통", tone: "ok" },
+    { name: "지방", value: "18g", status: "높음", tone: "warn" },
+    { name: "포화지방", value: "4.5g", status: "주의", tone: "warn" },
+    { name: "나트륨", value: "780mg", status: "높음", tone: "bad" },
+    { name: "당류", value: "4g", status: "낮음", tone: "ok" },
+  ],
+  ingredientsText: "마요네즈, 참치, 정제소금, 혼합제제, 향미증진제",
+  risk: { ok: 2, warn: 2, bad: 1 },
+  warningIngredients: [
+    { name: "나트륨 높음", category: "영양", info: "1일 권장량의 약 39%에 해당해요.", tone: "bad" },
+    { name: "포화지방 주의", category: "영양", info: "포화지방 함량이 높은 편이에요.", tone: "warn" },
+    { name: "첨가물 포함", category: "첨가물", info: "향미증진제 등 가공 첨가물이 들어 있어요.", tone: "warn" },
+  ],
+  alternatives: [
+    { name: "닭가슴살 주먹밥", tag: "나트륨 낮음 · 단백질 높음" },
+    { name: "현미 참치 삼각김밥", tag: "식이섬유 높음 · 지방 낮음" },
+  ],
+};
 
 function normalize(input: any): AnalysisData | null {
   if (!input || typeof input !== "object") return null;
@@ -115,36 +147,16 @@ function normalize(input: any): AnalysisData | null {
 }
 
 export function AnalysisView() {
-  const [data, setData] = useState<AnalysisData | null | undefined>(undefined);
+  const [data, setData] = useState<AnalysisData | undefined>(undefined);
 
   useEffect(() => {
-    setData(readAnalysis());
+    setData(readAnalysis() ?? MOCK_ANALYSIS);
   }, []);
 
   if (data === undefined) {
     return (
       <main className="px-5 pt-10 pb-6 text-center text-[13px] text-muted-foreground">
         결과를 불러오는 중…
-      </main>
-    );
-  }
-
-  if (!data) {
-    return (
-      <main className="px-5 pt-16 pb-6 flex flex-col items-center text-center">
-        <div className="size-16 rounded-full bg-muted grid place-items-center">
-          <ImageOff className="size-7 text-muted-foreground" />
-        </div>
-        <h2 className="mt-5 text-[17px] font-bold">분석 결과를 불러올 수 없어요</h2>
-        <p className="mt-2 text-[13px] text-muted-foreground leading-relaxed">
-          이미지가 비어 있거나 분석에 실패했어요.<br />다시 촬영해주세요.
-        </p>
-        <Link
-          to="/scan"
-          className="mt-6 inline-flex h-11 px-5 items-center rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold"
-        >
-          다시 촬영하기
-        </Link>
       </main>
     );
   }
