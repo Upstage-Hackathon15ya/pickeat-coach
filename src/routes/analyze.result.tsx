@@ -130,10 +130,10 @@ function Result() {
 
           <div className="mt-4">
             <div className="text-[11.5px] font-semibold text-foreground/80">성분 위험도</div>
-            <div className="mt-2 flex flex-wrap gap-1.5">
+            <div className="mt-2 flex flex-wrap gap-1.5 items-end">
               <RiskChip tone="ok">낮음 {d.risk.ok}개</RiskChip>
               <RiskChip tone="warn">주의 {d.risk.warn}개</RiskChip>
-              <RiskChip tone="bad">피해야 함 {d.risk.bad}개</RiskChip>
+              <RiskChip tone="bad">위험 {"\n"}{d.risk.bad}개</RiskChip>
             </div>
           </div>
 
@@ -221,7 +221,7 @@ function RiskChip({ children, tone }: { children: React.ReactNode; tone: "ok" | 
         ? "bg-warning/25 text-warning-foreground"
         : "bg-destructive/15 text-destructive";
   return (
-    <span className={cn("text-[11.5px] font-semibold px-2.5 py-1 rounded-full", styles)}>
+    <span className={cn("text-[11.5px] font-semibold px-2.5 py-1 rounded-full whitespace-pre-line text-center", styles)}>
       {children}
     </span>
   );
