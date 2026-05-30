@@ -238,11 +238,53 @@ export interface OnboardingPayload {
   userId?: string | null;
   [k: string]: unknown;
 }
+
+function readLocalJSON<T = unknown>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function buildOnboardingPayload(): OnboardingPayload {
+  const user = readLocalJSON<{ userId?: string; name?: string; email?: string; gender?: string; age?: number }>("eatfit.user") ?? {};
+  const info = readLocalJSON<{ gender?: string; age?: number }>("onboarding.info") ?? {};
+  const healthGoal = readLocalJSON<{ id?: string; label?: string }>("onboarding.healthGoal");
+  const goal = readLocalJSON("onboarding.goal");
+  const focus = readLocalJSON("onboarding.focus");
+  const restricted = readLocalJSON("onboarding.restricted");
+  const gender = info.gender ?? user.gender ?? null;
+  const age = info.age ?? user.age ?? null;
+
+  return {
+    user_Id: user.userId ?? getUserId(),
+    user_name: user.name ?? null,
+    user_email: user.email ?? null,
+    gender,
+    age,
+    health_goal: healthGoal?.id ?? healthGoal?.label ?? null,
+    health_goal_label: healthGoal?.label ?? null,
+    focus_areas: focus ?? null,
+    restricted_items: restricted ?? null,
+    info: { gender, age },
+    goal,
+    healthGoal,
+    focus,
+    restricted,
+  };
+}
+
 export async function submitOnboarding(payload: OnboardingPayload) {
   return request(ENDPOINTS.onboarding, {
     user_Id: getUserId(),
     ...payload,
   });
+}
+
+export async function syncOnboardingFromStorage() {
+  return submitOnboarding(buildOnboardingPayload());
 }
 
 // ---------------------------------------------------------------------------
