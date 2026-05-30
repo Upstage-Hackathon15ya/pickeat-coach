@@ -59,6 +59,22 @@ function firstString(...values: unknown[]): string | undefined {
   return undefined;
 }
 
+function collectObjects(value: unknown, depth = 0): Record<string, unknown>[] {
+  if (depth > 4 || !value) return [];
+  if (Array.isArray(value)) return value.flatMap((item) => collectObjects(item, depth + 1));
+  if (typeof value !== "object") return [];
+  const record = value as Record<string, unknown>;
+  return [record, ...Object.values(record).flatMap((item) => collectObjects(item, depth + 1))];
+}
+
+function pickFromObjects(objects: Record<string, unknown>[], ...keys: string[]): string | undefined {
+  for (const object of objects) {
+    const value = firstString(...keys.map((key) => object[key]));
+    if (value) return value;
+  }
+  return undefined;
+}
+
 function normalizeEmail(email: unknown): string | undefined {
   return typeof email === "string" && email.trim() ? email.trim().toLowerCase() : undefined;
 }
