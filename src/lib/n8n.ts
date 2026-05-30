@@ -184,7 +184,7 @@ export async function scanNutrition(
   try {
     const formData = new FormData();
     const blob = base64ToBlob(payload.image, payload.mimeType ?? "image/jpeg");
-    formData.append("file", blob, payload.filename ?? "image.jpg");
+    formData.append("data", blob, payload.filename ?? "image.jpg");
 
     if (payload.label_type) formData.append("label_type", payload.label_type);
     if (payload.gender) formData.append("gender", payload.gender);
