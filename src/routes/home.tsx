@@ -54,7 +54,11 @@ function Home() {
       const raw = localStorage.getItem("eatfit.user");
       if (raw) {
         const u = JSON.parse(raw);
-        if (u?.name) setUserName(String(u.name));
+        const n = typeof u?.name === "string" ? u.name.trim() : "";
+        // n8n 표현식이 그대로 저장된 경우 무시
+        if (n && !n.startsWith("=") && !n.includes("{{")) {
+          setUserName(n);
+        }
       }
     } catch {}
   }, []);
