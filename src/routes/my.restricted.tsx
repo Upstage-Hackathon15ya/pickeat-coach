@@ -1,9 +1,11 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { TopBar } from "@/components/TopBar";
 import { cn } from "@/lib/utils";
-import { Plus, X } from "lucide-react";
+import { syncOnboardingFromStorage, ApiError } from "@/lib/api";
+import { Loader2, Plus, X } from "lucide-react";
 
 export const Route = createFileRoute("/my/restricted")({
   component: RestrictedEdit,
@@ -18,6 +20,7 @@ function RestrictedEdit() {
   const [custom, setCustom] = useState<string[]>([]);
   const [showInput, setShowInput] = useState(false);
   const [text, setText] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     try {
@@ -56,9 +59,19 @@ function RestrictedEdit() {
     setSel((prev) => prev.filter((x) => x !== v));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (saving) return;
     persist(sel, custom);
-    router.history.back();
+    setSaving(true);
+    try {
+      await syncOnboardingFromStorage();
+      toast("피해야 할 성분이 저장되었어요.");
+      router.history.back();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "저장에 실패했어요. 다시 시도해주세요.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -135,8 +148,8 @@ function RestrictedEdit() {
         )}
 
         <div className="flex-1" />
-        <button onClick={handleSave} className="h-14 rounded-2xl bg-primary text-primary-foreground text-base font-semibold">
-          저장
+        <button onClick={handleSave} disabled={saving} className="h-14 rounded-2xl bg-primary text-primary-foreground text-base font-semibold disabled:opacity-70">
+          {saving ? <span className="inline-flex items-center justify-center gap-2"><Loader2 className="size-4 animate-spin" /> 저장 중…</span> : "저장"}
         </button>
       </div>
     </AppShell>

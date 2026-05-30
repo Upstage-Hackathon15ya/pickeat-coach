@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Mascot } from "@/components/Mascot";
-import { submitOnboarding, ApiError } from "@/lib/api";
+import { submitOnboarding, buildOnboardingPayload, ApiError } from "@/lib/api";
 
 export const Route = createFileRoute("/onboarding/complete")({
   component: OnbDone,
@@ -15,51 +15,12 @@ function OnbDone() {
   const sent = useRef(false);
   const [submitting, setSubmitting] = useState(false);
 
-  function readJSON<T = unknown>(key: string): T | null {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? (JSON.parse(raw) as T) : null;
-    } catch {
-      return null;
-    }
-  }
-
-  function buildPayload() {
-    const user = readJSON<{ name?: string; email?: string; gender?: string; age?: number }>("eatfit.user") ?? {};
-    const info = readJSON<{ gender?: string; age?: number }>("onboarding.info") ?? {};
-    const healthGoal = readJSON<{ id?: string; label?: string }>("onboarding.healthGoal");
-    const goal = readJSON("onboarding.goal");
-    const focus = readJSON("onboarding.focus");
-    const restricted = readJSON("onboarding.restricted");
-
-    const gender = info.gender ?? user.gender ?? null;
-    const age = info.age ?? user.age ?? null;
-
-    return {
-      // 백엔드가 컬럼으로 바로 매핑할 수 있는 flat 필드들
-      user_name: user.name ?? null,
-      user_email: user.email ?? null,
-      gender,
-      age,
-      health_goal: healthGoal?.id ?? healthGoal?.label ?? null,
-      health_goal_label: healthGoal?.label ?? null,
-      focus_areas: focus ?? null,
-      restricted_items: restricted ?? null,
-      // 원본 JSON 도 함께 (필요시 jsonb 컬럼에 저장)
-      info: { gender, age },
-      goal,
-      healthGoal,
-      focus,
-      restricted,
-    };
-  }
-
   useEffect(() => {
     if (sent.current) return;
     sent.current = true;
     (async () => {
       try {
-        await submitOnboarding(buildPayload());
+        await submitOnboarding(buildOnboardingPayload());
       } catch {
         // 사용자 흐름을 막지 않기 위해 조용히 무시 — 홈 진입 시점에 다시 시도 가능
       }
@@ -71,7 +32,7 @@ function OnbDone() {
     setSubmitting(true);
     try {
       // 홈 진입 직전에도 한 번 더 전송 보장
-      await submitOnboarding(buildPayload());
+      await submitOnboarding(buildOnboardingPayload());
     } catch (err) {
       if (err instanceof ApiError) {
         toast.error(err.message);
