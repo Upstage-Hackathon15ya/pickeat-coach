@@ -258,8 +258,15 @@ function Scan() {
               className="absolute inset-0 w-full h-full object-cover bg-zinc-900"
             />
             {errorMsg && (
-              <div className="absolute inset-0 bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-900 flex items-center justify-center p-6 text-center text-[13px] text-white/90">
-                {errorMsg}
+              <div className="absolute inset-0 bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-900 flex flex-col items-center justify-center gap-4 p-6 text-center text-[13px] text-white/90">
+                <p>{errorMsg}</p>
+                <Link
+                  to="/scan/upload"
+                  className="inline-flex items-center gap-2 px-4 h-10 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold"
+                >
+                  <ImageIcon className="size-4" />
+                  갤러리에서 이미지 업로드
+                </Link>
               </div>
             )}
             {previewUrl && (
