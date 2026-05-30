@@ -1,9 +1,10 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Pencil, Check } from "lucide-react";
+import { Pencil, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { TopBar } from "@/components/TopBar";
+import { syncOnboardingFromStorage, ApiError } from "@/lib/api";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +28,7 @@ function Account() {
   const [editing, setEditing] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     try {
@@ -40,15 +42,24 @@ function Account() {
     } catch {}
   }, []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (saving) return;
     try {
       const raw = localStorage.getItem("eatfit.user");
       const prev = raw ? JSON.parse(raw) : {};
       const next = { ...prev, name, email, password };
       localStorage.setItem("eatfit.user", JSON.stringify(next));
     } catch {}
-    setEditing(false);
-    toast("프로필이 저장되었어요.");
+    setSaving(true);
+    try {
+      await syncOnboardingFromStorage();
+      setEditing(false);
+      toast("프로필이 저장되었어요.");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "저장에 실패했어요. 다시 시도해주세요.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleLogout = () => {
@@ -103,9 +114,10 @@ function Account() {
         <div className="px-5 mt-8">
           <button
             onClick={handleSave}
-            className="w-full bg-primary text-primary-foreground rounded-2xl py-4 text-[15px] font-semibold"
+            disabled={saving}
+            className="w-full bg-primary text-primary-foreground rounded-2xl py-4 text-[15px] font-semibold disabled:opacity-70"
           >
-            저장
+            {saving ? <span className="inline-flex items-center justify-center gap-2"><Loader2 className="size-4 animate-spin" /> 저장 중…</span> : "저장"}
           </button>
         </div>
       )}
