@@ -13,6 +13,13 @@ export const Route = createFileRoute("/analyze/result")({
 });
 
 type Tone = "ok" | "warn" | "bad" | "check";
+type VerdictStatus = "ok" | "warn" | "bad";
+
+const verdictDisplay: Record<VerdictStatus, { title: string; bg: string }> = {
+  ok: { title: "괜찮아요", bg: "from-success to-success/70" },
+  warn: { title: "조금만 드세요", bg: "from-warning to-warning/80" },
+  bad: { title: "오늘은 패스", bg: "from-destructive to-destructive/70" },
+};
 
 const MOCK = {
   product: {
@@ -21,6 +28,7 @@ const MOCK = {
     tags: ["음료", "제로슈가"],
   },
   verdict: {
+    status: "warn" as VerdictStatus,
     title: "조금만 드세요",
     sub: "당류는 낮지만, 카페인과 대체당이 포함되어 있어요.",
   },
