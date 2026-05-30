@@ -396,23 +396,38 @@ export function buildOnboardingPayload(): OnboardingPayload {
 
 export async function submitOnboarding(payload: OnboardingPayload) {
   const userId = firstString(payload.userId, payload.user_Id, payload.user_id, getUserId());
-  return request(ENDPOINTS.onboarding, {
+  const syncPayload = {
     ...payload,
-    action: "update",
-    event_type: "onboarding_update",
+    action: "upsert",
+    operation: "upsert",
+    event_type: payload.event_type ?? "onboarding_update",
     user_Id: userId,
     user_id: userId,
     userId,
-  });
+    focus_areas_json: JSON.stringify(payload.focus_areas ?? payload.focus ?? null),
+    focus_selected_text: Array.isArray(payload.focus_selected) ? payload.focus_selected.join(",") : "",
+    focus_targets_json: JSON.stringify(payload.focus_targets ?? null),
+    restricted_items_json: JSON.stringify(payload.restricted_items ?? payload.restricted ?? null),
+    restricted_all_text: Array.isArray(payload.restricted_all) ? payload.restricted_all.join(",") : "",
+  };
+  try {
+    return await request(ENDPOINTS.onboarding, syncPayload);
+  } catch (err) {
+    if (err instanceof ApiError || err instanceof N8nError) {
+      return callN8n("onboarding", syncPayload);
+    }
+    throw err;
+  }
 }
 
-export async function syncOnboardingFromStorage() {
-  const payload = buildOnboardingPayload();
+export async function syncOnboardingFromStorage(eventType = "onboarding_update") {
+  const payload: OnboardingPayload = { ...buildOnboardingPayload(), event_type: eventType };
   const userId = firstString(payload.userId, payload.user_Id, payload.user_id, getUserId());
   const updatePayload = {
     ...payload,
-    action: "update",
-    event_type: "onboarding_update",
+    action: "upsert",
+    operation: "upsert",
+    event_type: eventType,
     user_Id: userId,
     user_id: userId,
     userId,
