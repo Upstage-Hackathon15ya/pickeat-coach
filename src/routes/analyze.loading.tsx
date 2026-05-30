@@ -53,7 +53,7 @@ function Loading() {
 
     (async () => {
       try {
-        // 1. 이미지 로딩 검증
+        // 1. 이미지 검증
         const nutritionDataUrl = await ensureLoadedDataUrl(
           raw_nutrition.startsWith("data:") ? raw_nutrition : `data:image/jpeg;base64,${raw_nutrition}`,
         );
@@ -69,7 +69,7 @@ function Loading() {
 
         const image_merged = mergedDataUrl.split(",")[1] ?? "";
 
-        // 3. user_id 안전하게 확보
+        // 3. user_id 확보
         let resolvedUserId: string | null = getUserId();
 
         if (!resolvedUserId) {
@@ -79,21 +79,30 @@ function Loading() {
           resolvedUserId = session?.user?.id ?? null;
         }
 
+        // 4. 로그인 체크
         if (!resolvedUserId) {
           setErrorMsg(LOGIN_MSG);
           toast.error(LOGIN_MSG);
           return;
         }
 
-        console.log("[n8n] user_id:", resolvedUserId);
+        const user_id = String(resolvedUserId);
 
-        // 4. n8n 호출 (절대 undefined 금지)
+        // 🔥 DEBUG (필수)
+        console.log("[n8n payload]", {
+          user_id,
+          health_goal: userHealthGoal,
+          image_length: image_merged?.length,
+        });
+
+        // 5. n8n 호출 (절대 undefined 없음)
         const result = await scanNutrition({
           image: image_merged,
           health_goal: userHealthGoal,
-          user_id: resolvedUserId,
+          user_id,
         });
 
+        // 6. 결과 체크
         if (!result?.success) {
           setErrorMsg(FAIL_MSG);
           toast.error(FAIL_MSG);
