@@ -421,7 +421,7 @@ export async function submitOnboarding(payload: OnboardingPayload) {
 }
 
 export async function syncOnboardingFromStorage(eventType = "onboarding_update") {
-  const payload = { ...buildOnboardingPayload(), event_type: eventType };
+  const payload: OnboardingPayload = { ...buildOnboardingPayload(), event_type: eventType };
   const userId = firstString(payload.userId, payload.user_Id, payload.user_id, getUserId());
   const updatePayload = {
     ...payload,
