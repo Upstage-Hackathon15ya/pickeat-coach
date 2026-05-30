@@ -84,9 +84,12 @@ function Loading() {
         }
         const image_merged = mergedDataUrl.split(",")[1] ?? "";
 
+        const { data: { session } } = await supabase.auth.getSession();
+
         const result = await scanNutrition({
           image: image_merged,
           health_goal: userHealthGoal,
+          user_id: session?.user?.id ?? undefined,
         });
         if (!result || result.success === false) {
           setErrorMsg(FAIL_MSG);
