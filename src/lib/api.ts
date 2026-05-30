@@ -126,7 +126,16 @@ function resolveUserId(prev: StoredUser, incoming: StoredUser): string | undefin
 export function getStoredUser(): StoredUser | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.user);
-    return raw ? (JSON.parse(raw) as StoredUser) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredUser;
+    // n8n 표현식 문자열이 그대로 저장된 경우 제거
+    if (typeof parsed?.name === "string") {
+      const n = parsed.name.trim();
+      if (!n || n.startsWith("=") || n.includes("{{")) {
+        delete (parsed as { name?: string }).name;
+      }
+    }
+    return parsed;
   } catch {
     return null;
   }

@@ -35,7 +35,8 @@ function Account() {
       const raw = localStorage.getItem("eatfit.user");
       if (raw) {
         const u = JSON.parse(raw);
-        if (u?.name) setName(String(u.name));
+        const n = typeof u?.name === "string" ? u.name.trim() : "";
+        if (n && !n.startsWith("=") && !n.includes("{{")) setName(n);
         if (u?.email) setEmail(String(u.email));
         if (u?.password) setPassword(String(u.password));
       }
@@ -44,10 +45,15 @@ function Account() {
 
   const handleSave = async () => {
     if (saving) return;
+    const cleanName = name.trim();
+    if (cleanName.startsWith("=") || cleanName.includes("{{")) {
+      toast.error("이름이 올바르지 않아요. 다시 입력해주세요.");
+      return;
+    }
     try {
       const raw = localStorage.getItem("eatfit.user");
       const prev = raw ? JSON.parse(raw) : {};
-      const next = { ...prev, name, email, password };
+      const next = { ...prev, name: cleanName, email, password };
       localStorage.setItem("eatfit.user", JSON.stringify(next));
     } catch {}
     setSaving(true);
