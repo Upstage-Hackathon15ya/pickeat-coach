@@ -4,7 +4,6 @@ import { TopBar } from "@/components/TopBar";
 import { Mascot } from "@/components/Mascot";
 import { AlertTriangle, Sparkles, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useMemo } from "react";
 
 export const Route = createFileRoute("/analyze/result")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -15,118 +14,44 @@ export const Route = createFileRoute("/analyze/result")({
 
 type Tone = "ok" | "warn" | "bad" | "check";
 
-type MockResult = {
-  product: { foodType: string; name: string; tags: string[] };
-  verdict: { title: string; sub: string };
-  coach: string;
-  nutrition: { name: string; value: string; status: string; tone: Tone }[];
-  risk: { ok: number; warn: number; bad: number };
-  ingredientsText: string;
-  warningIngredients: { name: string; category: string; info: string }[];
-  alternatives: { name: string; tag: string }[];
+const MOCK = {
+  product: {
+    foodType: "코카콜라",
+    name: "제로 콜라 500ml",
+    tags: ["음료", "제로슈가"],
+  },
+  verdict: {
+    title: "조금만 드세요",
+    sub: "당류는 낮지만, 카페인과 대체당이 포함되어 있어요.",
+  },
+  coach:
+    "다임님의 혈당 관리 목표엔 큰 무리 없어요. 다만 카페인에 민감하면 오후엔 피해주세요.",
+  nutrition: [
+    { name: "당류", value: "0g", status: "낮음", tone: "ok" as Tone },
+    { name: "나트륨", value: "45mg", status: "낮음", tone: "ok" as Tone },
+    { name: "카페인", value: "34mg", status: "주의", tone: "warn" as Tone },
+    { name: "대체당", value: "포함", status: "확인 필요", tone: "check" as Tone },
+  ],
+  risk: { ok: 2, warn: 3, bad: 0 },
+  ingredientsText:
+    "정제수, 이산화탄소, 카라멜색소, 인산, 카페인, 아세설팜칼륨, 수크랄로스",
+  warningIngredients: [
+    { name: "아세설팜칼륨", category: "대체당", info: "단맛을 내는 감미료예요" },
+    { name: "수크랄로스", category: "대체당", info: "과다 섭취 시 장이 예민할 수 있어요" },
+    { name: "카페인", category: "각성 성분", info: "민감하면 오후 섭취를 줄여요" },
+    { name: "인산", category: "첨가물", info: "과다 섭취는 주의가 필요해요" },
+  ],
+  alternatives: [
+    { name: "무가당 탄산수", tag: "당 0g · 카페인 0mg" },
+    { name: "카페인 없는 보리차", tag: "디카페인 · 부드러운 곡물차" },
+  ],
 };
-
-const MOCK_LIST: MockResult[] = [
-  {
-    product: { foodType: "간편식", name: "참치마요 삼각김밥", tags: ["간편식", "삼각김밥"] },
-    verdict: { title: "조금만 드세요", sub: "나트륨과 포화지방이 높은 편이에요." },
-    coach:
-      "식사 대용으로는 괜찮지만 나트륨 함량이 높은 편이에요. 오늘 다른 짠 음식과 함께 섭취하는 것은 피하는 것이 좋아요.",
-    nutrition: [
-      { name: "열량", value: "420kcal", status: "주의", tone: "warn" },
-      { name: "탄수화물", value: "46g", status: "안전", tone: "ok" },
-      { name: "지방", value: "18g", status: "주의", tone: "warn" },
-      { name: "나트륨", value: "780mg", status: "위험", tone: "bad" },
-      { name: "당류", value: "4g", status: "안전", tone: "ok" },
-    ],
-    risk: { ok: 2, warn: 2, bad: 1 },
-    ingredientsText: "마요네즈, 참치, 정제소금, 혼합제제, 향미증진제",
-    warningIngredients: [
-      { name: "나트륨", category: "영양", info: "1일 권장량의 약 39%에 해당해요." },
-      { name: "포화지방", category: "영양", info: "포화지방 함량이 높은 편이에요." },
-      { name: "향미증진제", category: "첨가물", info: "맛을 강화하는 가공 첨가물이에요." },
-    ],
-    alternatives: [
-      { name: "닭가슴살 주먹밥", tag: "나트륨 낮음 · 단백질 높음" },
-      { name: "현미 참치 삼각김밥", tag: "식이섬유 높음 · 지방 낮음" },
-    ],
-  },
-  {
-    product: { foodType: "과자", name: "초코칩 쿠키", tags: ["과자", "쿠키"] },
-    verdict: { title: "오늘은 피해주세요", sub: "당류와 포화지방이 모두 높은 편이에요." },
-    coach:
-      "당과 포화지방이 높아 자주 드시면 부담될 수 있어요. 가끔, 소량만 즐기는 것을 추천해요.",
-    nutrition: [
-      { name: "열량", value: "480kcal", status: "위험", tone: "bad" },
-      { name: "탄수화물", value: "58g", status: "주의", tone: "warn" },
-      { name: "지방", value: "24g", status: "위험", tone: "bad" },
-      { name: "포화지방", value: "12g", status: "위험", tone: "bad" },
-      { name: "당류", value: "28g", status: "위험", tone: "bad" },
-    ],
-    risk: { ok: 1, warn: 1, bad: 3 },
-    ingredientsText: "밀가루, 설탕, 버터, 초코칩(코코아매스, 설탕, 식물성유지), 계란, 합성향료",
-    warningIngredients: [
-      { name: "당류", category: "영양", info: "한 봉지에 28g의 당이 들어 있어요." },
-      { name: "포화지방", category: "영양", info: "버터·식물성유지로 비율이 높아요." },
-      { name: "합성향료", category: "첨가물", info: "맛과 향을 강화하기 위해 사용돼요." },
-    ],
-    alternatives: [
-      { name: "오트밀 쿠키", tag: "통곡물 · 당류 낮음" },
-      { name: "다크초콜릿 한 조각", tag: "당 낮음 · 포만감" },
-    ],
-  },
-  {
-    product: { foodType: "탄산음료", name: "무가당 탄산수", tags: ["음료", "제로슈가"] },
-    verdict: { title: "괜찮아요", sub: "당류와 나트륨 부담이 낮은 편이에요." },
-    coach:
-      "당과 칼로리 부담이 없어 갈증 해소에 좋아요. 식사 중에도 부담 없이 즐길 수 있어요.",
-    nutrition: [
-      { name: "열량", value: "0kcal", status: "안전", tone: "ok" },
-      { name: "탄수화물", value: "0g", status: "안전", tone: "ok" },
-      { name: "지방", value: "0g", status: "안전", tone: "ok" },
-      { name: "나트륨", value: "10mg", status: "안전", tone: "ok" },
-      { name: "당류", value: "0g", status: "안전", tone: "ok" },
-    ],
-    risk: { ok: 2, warn: 0, bad: 0 },
-    ingredientsText: "정제수, 이산화탄소",
-    warningIngredients: [],
-    alternatives: [
-      { name: "보리차", tag: "디카페인 · 부드러운 곡물차" },
-      { name: "레몬워터", tag: "비타민C · 칼로리 0" },
-    ],
-  },
-  {
-    product: { foodType: "과자", name: "포카칩 오리지널", tags: ["과자", "스낵"] },
-    verdict: { title: "조금만 드세요", sub: "나트륨과 지방 함량을 확인해보세요." },
-    coach:
-      "가끔 즐기는 간식으로는 괜찮지만, 한 봉지를 다 드시면 나트륨과 지방 섭취가 많아질 수 있어요.",
-    nutrition: [
-      { name: "열량", value: "340kcal", status: "주의", tone: "warn" },
-      { name: "탄수화물", value: "32g", status: "안전", tone: "ok" },
-      { name: "지방", value: "22g", status: "위험", tone: "bad" },
-      { name: "포화지방", value: "8g", status: "주의", tone: "warn" },
-      { name: "나트륨", value: "320mg", status: "주의", tone: "warn" },
-    ],
-    risk: { ok: 1, warn: 3, bad: 1 },
-    ingredientsText: "감자, 식물성유지(팜올레인유), 정제소금, 향미증진제, 산화방지제",
-    warningIngredients: [
-      { name: "지방", category: "영양", info: "튀김 가공으로 지방 함량이 높아요." },
-      { name: "팜올레인유", category: "유지", info: "포화지방 비율이 높은 편이에요." },
-      { name: "향미증진제", category: "첨가물", info: "맛을 강화하기 위해 사용돼요." },
-    ],
-    alternatives: [
-      { name: "고구마칩(에어프라이)", tag: "지방 낮음 · 식이섬유 풍부" },
-      { name: "구운 통곡물 크래커", tag: "통곡물 · 나트륨 낮음" },
-    ],
-  },
-];
 
 function Result() {
   const navigate = useNavigate();
   const { from } = Route.useSearch();
   const isFromHome = from === "home";
-  // New scan/upload → random mock product. Stable per mount.
-  const d = useMemo(() => MOCK_LIST[Math.floor(Math.random() * MOCK_LIST.length)], []);
+  const d = MOCK;
 
   return (
     <AppShell>

@@ -1,6 +1,5 @@
 import { Sparkles, ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import { Mascot } from "@/components/Mascot";
 import { cn } from "@/lib/utils";
 
@@ -53,151 +52,38 @@ function readAnalysis(): AnalysisData | null {
   }
 }
 
-const MOCK_ANALYSES: AnalysisData[] = [
-  {
-    product: { name: "참치마요 삼각김밥", foodType: "간편식", tags: ["간편식", "삼각김밥"] },
-    verdict: "warn",
-    verdictTitle: "조금만 드세요",
-    verdictSub: "나트륨과 포화지방이 높은 편이에요.",
-    coach:
-      "식사 대용으로는 괜찮지만 나트륨 함량이 높은 편이에요. 오늘 다른 짠 음식과 함께 섭취하는 것은 피하는 것이 좋아요.",
-    nutrition: [
-      { name: "열량", value: "420kcal", status: "", tone: "warn" },
-      { name: "탄수화물", value: "46g", status: "", tone: "ok" },
-      { name: "단백질", value: "12g", status: "", tone: "ok" },
-      { name: "지방", value: "18g", status: "", tone: "warn" },
-      { name: "포화지방", value: "4.5g", status: "", tone: "warn" },
-      { name: "나트륨", value: "780mg", status: "", tone: "bad" },
-      { name: "당류", value: "4g", status: "", tone: "ok" },
-    ],
-    ingredientsText: "마요네즈, 참치, 정제소금, 혼합제제, 향미증진제",
-    risk: { ok: 2, warn: 2, bad: 1 },
-    warningIngredients: [
-      { name: "나트륨 높음", category: "영양", info: "1일 권장량의 약 39%에 해당해요.", tone: "bad" },
-      { name: "포화지방 주의", category: "영양", info: "포화지방 함량이 높은 편이에요.", tone: "warn" },
-      { name: "첨가물 포함", category: "첨가물", info: "향미증진제 등 가공 첨가물이 들어 있어요.", tone: "warn" },
-    ],
-    alternatives: [
-      { name: "닭가슴살 주먹밥", tag: "나트륨 낮음 · 단백질 높음" },
-      { name: "현미 참치 삼각김밥", tag: "식이섬유 높음 · 지방 낮음" },
-    ],
+const MOCK_ANALYSIS: AnalysisData = {
+  product: {
+    name: "참치마요 삼각김밥",
+    foodType: "간편식",
+    tags: ["간편식", "삼각김밥"],
   },
-  {
-    product: { name: "포카칩 오리지널", foodType: "과자", tags: ["과자", "스낵"] },
-    verdict: "warn",
-    verdictTitle: "조금만 드세요",
-    verdictSub: "나트륨과 지방 함량을 확인해보는 게 좋아요.",
-    coach:
-      "가끔 즐기는 간식으로는 괜찮지만, 한 봉지를 다 드시면 나트륨과 지방 섭취가 많아질 수 있어요.",
-    nutrition: [
-      { name: "열량", value: "340kcal", status: "", tone: "warn" },
-      { name: "탄수화물", value: "32g", status: "", tone: "ok" },
-      { name: "단백질", value: "3g", status: "", tone: "ok" },
-      { name: "지방", value: "22g", status: "", tone: "bad" },
-      { name: "포화지방", value: "8g", status: "", tone: "warn" },
-      { name: "나트륨", value: "320mg", status: "", tone: "warn" },
-      { name: "당류", value: "1g", status: "", tone: "ok" },
-    ],
-    ingredientsText: "감자, 식물성유지(팜올레인유), 정제소금, 향미증진제, 산화방지제",
-    risk: { ok: 1, warn: 3, bad: 1 },
-    warningIngredients: [
-      { name: "지방 높음", category: "영양", info: "튀김 가공으로 지방 함량이 높아요.", tone: "bad" },
-      { name: "팜올레인유", category: "유지", info: "포화지방 비율이 높은 편이에요.", tone: "warn" },
-      { name: "향미증진제", category: "첨가물", info: "맛을 강화하기 위해 사용돼요.", tone: "warn" },
-    ],
-    alternatives: [
-      { name: "고구마칩(에어프라이)", tag: "지방 낮음 · 식이섬유 풍부" },
-      { name: "구운 통곡물 크래커", tag: "통곡물 · 나트륨 낮음" },
-    ],
-  },
-  {
-    product: { name: "무가당 탄산수", foodType: "탄산음료", tags: ["음료", "제로슈가"] },
-    verdict: "ok",
-    verdictTitle: "괜찮아요",
-    verdictSub: "당류와 나트륨 부담이 낮은 편이에요.",
-    coach:
-      "당과 칼로리 부담이 없어 갈증 해소에 좋아요. 식사 중에도 부담 없이 즐길 수 있어요.",
-    nutrition: [
-      { name: "열량", value: "0kcal", status: "", tone: "ok" },
-      { name: "탄수화물", value: "0g", status: "", tone: "ok" },
-      { name: "단백질", value: "0g", status: "", tone: "ok" },
-      { name: "지방", value: "0g", status: "", tone: "ok" },
-      { name: "나트륨", value: "10mg", status: "", tone: "ok" },
-      { name: "당류", value: "0g", status: "", tone: "ok" },
-    ],
-    ingredientsText: "정제수, 이산화탄소",
-    risk: { ok: 2, warn: 0, bad: 0 },
-    warningIngredients: [],
-    alternatives: [
-      { name: "보리차", tag: "디카페인 · 부드러운 곡물차" },
-      { name: "레몬워터", tag: "비타민C · 칼로리 0" },
-    ],
-  },
-  {
-    product: { name: "초코칩 쿠키", foodType: "과자", tags: ["과자", "쿠키"] },
-    verdict: "bad",
-    verdictTitle: "오늘은 피해주세요",
-    verdictSub: "당류와 포화지방이 모두 높은 편이에요.",
-    coach:
-      "당과 포화지방이 높아 자주 드시면 부담될 수 있어요. 가끔, 소량만 즐기는 것을 추천해요.",
-    nutrition: [
-      { name: "열량", value: "480kcal", status: "", tone: "bad" },
-      { name: "탄수화물", value: "58g", status: "", tone: "warn" },
-      { name: "단백질", value: "5g", status: "", tone: "ok" },
-      { name: "지방", value: "24g", status: "", tone: "bad" },
-      { name: "포화지방", value: "12g", status: "", tone: "bad" },
-      { name: "나트륨", value: "260mg", status: "", tone: "warn" },
-      { name: "당류", value: "28g", status: "", tone: "bad" },
-    ],
-    ingredientsText: "밀가루, 설탕, 버터, 초코칩(코코아매스, 설탕, 식물성유지), 계란, 합성향료",
-    risk: { ok: 1, warn: 1, bad: 3 },
-    warningIngredients: [
-      { name: "당류 높음", category: "영양", info: "한 봉지에 28g의 당이 들어 있어요.", tone: "bad" },
-      { name: "포화지방 높음", category: "영양", info: "버터·식물성유지로 포화지방 비율이 높아요.", tone: "bad" },
-      { name: "합성향료", category: "첨가물", info: "맛과 향을 강화하기 위해 사용돼요.", tone: "warn" },
-    ],
-    alternatives: [
-      { name: "오트밀 쿠키", tag: "통곡물 · 당류 낮음" },
-      { name: "다크초콜릿 한 조각", tag: "당 낮음 · 포만감" },
-    ],
-  },
-];
-
-function pickRandomMock(): AnalysisData {
-  return MOCK_ANALYSES[Math.floor(Math.random() * MOCK_ANALYSES.length)];
-}
-
-export function findMockByName(name: string | undefined | null): AnalysisData | null {
-  if (!name) return null;
-  const trimmed = name.trim();
-  return (
-    MOCK_ANALYSES.find((m) => m.product?.name === trimmed) ??
-    MOCK_ANALYSES.find((m) => trimmed.includes(m.product?.name ?? "__") || (m.product?.name ?? "").includes(trimmed)) ??
-    null
-  );
-}
-
-function buildGenericMock(name: string, foodType?: string): AnalysisData {
-  return {
-    product: { name, foodType: foodType ?? "기록 식품", tags: foodType ? [foodType] : [] },
-    verdict: "warn",
-    verdictTitle: "참고용 분석",
-    verdictSub: "저장된 상세 분석이 없어 예시 데이터를 보여드려요.",
-    coach: `${name}에 대한 상세 분석은 아직 준비 중이에요. 식품 라벨을 다시 스캔하면 더 정확한 분석을 받아볼 수 있어요.`,
-    nutrition: [
-      { name: "열량", value: "-", status: "", tone: "ok" },
-      { name: "탄수화물", value: "-", status: "", tone: "ok" },
-      { name: "단백질", value: "-", status: "", tone: "ok" },
-      { name: "지방", value: "-", status: "", tone: "ok" },
-      { name: "나트륨", value: "-", status: "", tone: "ok" },
-      { name: "당류", value: "-", status: "", tone: "ok" },
-    ],
-    ingredientsText: "원재료 정보가 없어요.",
-    risk: { ok: 0, warn: 0, bad: 0 },
-    warningIngredients: [],
-    alternatives: [],
-  };
-}
+  verdict: "warn",
+  verdictTitle: "주의",
+  verdictSub: "조금만 드세요 · 나트륨과 지방 함량이 높은 편이에요.",
+  coach:
+    "식사 대용으로는 괜찮지만 나트륨 함량이 높은 편이에요. 오늘 다른 짠 음식과 함께 섭취하는 것은 피하는 것이 좋아요.",
+  nutrition: [
+    { name: "열량", value: "420kcal", status: "보통", tone: "warn" },
+    { name: "탄수화물", value: "46g", status: "보통", tone: "ok" },
+    { name: "단백질", value: "12g", status: "보통", tone: "ok" },
+    { name: "지방", value: "18g", status: "높음", tone: "warn" },
+    { name: "포화지방", value: "4.5g", status: "주의", tone: "warn" },
+    { name: "나트륨", value: "780mg", status: "높음", tone: "bad" },
+    { name: "당류", value: "4g", status: "낮음", tone: "ok" },
+  ],
+  ingredientsText: "마요네즈, 참치, 정제소금, 혼합제제, 향미증진제",
+  risk: { ok: 2, warn: 2, bad: 1 },
+  warningIngredients: [
+    { name: "나트륨 높음", category: "영양", info: "1일 권장량의 약 39%에 해당해요.", tone: "bad" },
+    { name: "포화지방 주의", category: "영양", info: "포화지방 함량이 높은 편이에요.", tone: "warn" },
+    { name: "첨가물 포함", category: "첨가물", info: "향미증진제 등 가공 첨가물이 들어 있어요.", tone: "warn" },
+  ],
+  alternatives: [
+    { name: "닭가슴살 주먹밥", tag: "나트륨 낮음 · 단백질 높음" },
+    { name: "현미 참치 삼각김밥", tag: "식이섬유 높음 · 지방 낮음" },
+  ],
+};
 
 function normalize(input: any): AnalysisData | null {
   if (!input || typeof input !== "object") return null;
@@ -260,30 +146,12 @@ function normalize(input: any): AnalysisData | null {
   };
 }
 
-export function AnalysisView({
-  fixedName,
-  fixedFoodType,
-}: {
-  fixedName?: string;
-  fixedFoodType?: string;
-} = {}) {
+export function AnalysisView() {
   const [data, setData] = useState<AnalysisData | undefined>(undefined);
 
   useEffect(() => {
-    if (fixedName) {
-      // History detail: use fixed mock based on the selected record title.
-      const match = findMockByName(fixedName);
-      setData(match ?? buildGenericMock(fixedName, fixedFoodType));
-      return;
-    }
-    const loaded = readAnalysis();
-    if (loaded) {
-      setData(loaded);
-    } else {
-      setData(pickRandomMock());
-      toast("분석 결과를 불러오지 못해 예시 결과를 보여드려요.");
-    }
-  }, [fixedName, fixedFoodType]);
+    setData(readAnalysis() ?? MOCK_ANALYSIS);
+  }, []);
 
   if (data === undefined) {
     return (
