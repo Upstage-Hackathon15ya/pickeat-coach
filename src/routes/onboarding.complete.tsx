@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { Mascot } from "@/components/Mascot";
-import { submitOnboarding, buildOnboardingPayload, ApiError } from "@/lib/api";
+import { syncOnboardingFromStorage, ApiError } from "@/lib/api";
 
 export const Route = createFileRoute("/onboarding/complete")({
   component: OnbDone,
@@ -20,7 +20,7 @@ function OnbDone() {
     sent.current = true;
     (async () => {
       try {
-        await submitOnboarding(buildOnboardingPayload());
+        await syncOnboardingFromStorage("onboarding_complete");
       } catch {
         // 사용자 흐름을 막지 않기 위해 조용히 무시 — 홈 진입 시점에 다시 시도 가능
       }
@@ -32,7 +32,7 @@ function OnbDone() {
     setSubmitting(true);
     try {
       // 홈 진입 직전에도 한 번 더 전송 보장
-      await submitOnboarding(buildOnboardingPayload());
+      await syncOnboardingFromStorage("onboarding_complete");
     } catch (err) {
       if (err instanceof ApiError) {
         toast.error(err.message);
