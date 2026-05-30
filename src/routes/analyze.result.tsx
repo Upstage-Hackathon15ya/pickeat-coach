@@ -84,11 +84,11 @@ function Result() {
         </section>
 
         {/* 2. Main judgment */}
-        <section className="rounded-3xl p-5 bg-gradient-to-br from-warning to-warning/80 text-warning-foreground relative overflow-hidden shadow-soft">
+        <section className={cn("rounded-3xl p-5 bg-gradient-to-br relative overflow-hidden shadow-soft", v.bg, v.text)}>
           <AlertTriangle className="absolute right-4 top-4 size-10 opacity-70" strokeWidth={2.2} />
           <div className="text-[12px] font-medium opacity-80">픽잇의 판단</div>
           <h2 className="mt-0.5 text-[28px] font-black tracking-tight leading-tight">
-            {d.verdict.title}
+            {v.title}
           </h2>
           <p className="mt-1.5 text-[13px] opacity-90 leading-relaxed pr-12">
             {d.verdict.sub}
