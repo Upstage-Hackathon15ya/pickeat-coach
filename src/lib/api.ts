@@ -383,11 +383,20 @@ export async function submitOnboarding(payload: OnboardingPayload) {
 
 export async function syncOnboardingFromStorage() {
   const payload = buildOnboardingPayload();
+  const userId = firstString(payload.userId, payload.user_Id, payload.user_id, getUserId());
+  const updatePayload = {
+    ...payload,
+    action: "update",
+    event_type: "onboarding_update",
+    user_Id: userId,
+    user_id: userId,
+    userId,
+  };
   try {
-    return await submitOnboarding(payload);
+    return await submitOnboarding(updatePayload);
   } catch (err) {
     if (err instanceof ApiError || err instanceof N8nError) {
-      return callN8n("onboarding", payload);
+      return callN8n("onboarding", updatePayload);
     }
     throw err;
   }
