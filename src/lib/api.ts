@@ -316,7 +316,7 @@ function readLocalJSON<T = unknown>(key: string): T | null {
 }
 
 export function buildOnboardingPayload(): OnboardingPayload {
-  const user = readLocalJSON<{ userId?: string; name?: string; email?: string; gender?: string; age?: number }>("eatfit.user") ?? {};
+  const user = readLocalJSON<StoredUser & { gender?: string; age?: number }>("eatfit.user") ?? {};
   const info = readLocalJSON<{ gender?: string; age?: number }>("onboarding.info") ?? {};
   const healthGoal = readLocalJSON<{ id?: string; label?: string }>("onboarding.healthGoal");
   const goal = readLocalJSON("onboarding.goal");
