@@ -14,7 +14,7 @@ export type N8nTarget = (typeof N8N_TARGETS)[number];
 
 const TARGET_URLS: Record<N8nTarget, string> = {
   signup: `${N8N_BASE}/webhook/signup`,
-  scan: import.meta.env.VITE_N8N_SCAN_URL ?? `${N8N_BASE}/webhook/5a5d0582-174a-46c2-a903-a213dc8311a4`,
+  scan: import.meta.env.VITE_N8N_SCAN_WEBHOOK_URL ?? `${N8N_BASE}/webhook/5a5d0582-174a-46c2-a903-a213dc8311a4`,
   onboarding: `${N8N_BASE}/webhook/onboarding`,
   saveIntake: import.meta.env.VITE_N8N_SAVE_INTAKE_URL ?? `${N8N_BASE}/webhook/saveIntake`,
   saveScan: import.meta.env.VITE_N8N_SAVE_SCAN_URL ?? `${N8N_BASE}/webhook/saveScan`,
