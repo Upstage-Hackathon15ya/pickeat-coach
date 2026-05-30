@@ -6,29 +6,28 @@
  * Edge Function을 통해 서버사이드로 프록시됩니다.
  */
 
-const SUPABASE_URL =
-  import.meta.env.VITE_SUPABASE_URL ?? (typeof process !== "undefined" ? process.env.SUPABASE_URL : "");
-const SUPABASE_ANON_KEY =
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-  (typeof process !== "undefined" ? process.env.SUPABASE_PUBLISHABLE_KEY : "");
+const N8N_BASE = "https://upstage15.app.n8n.cloud";
 
-const PROXY_BASE = `${SUPABASE_URL}/functions/v1/n8n-proxy`;
-
-/** n8n Webhook 타겟 키 — Edge Function의 TARGETS 매핑과 일치해야 합니다. */
+/** n8n Webhook 타겟 키 → URL 매핑. 가능한 경우 환경변수로 덮어쓸 수 있습니다. */
 export const N8N_TARGETS = ["signup", "scan", "onboarding", "saveIntake", "saveScan", "historyInquire", "chat"] as const;
 export type N8nTarget = (typeof N8N_TARGETS)[number];
 
+const TARGET_URLS: Record<N8nTarget, string> = {
+  signup: `${N8N_BASE}/webhook/signup`,
+  scan: import.meta.env.VITE_N8N_SCAN_URL ?? `${N8N_BASE}/webhook/5a5d0582-174a-46c2-a903-a213dc8311a4`,
+  onboarding: `${N8N_BASE}/webhook/onboarding`,
+  saveIntake: import.meta.env.VITE_N8N_SAVE_INTAKE_URL ?? `${N8N_BASE}/webhook/saveIntake`,
+  saveScan: import.meta.env.VITE_N8N_SAVE_SCAN_URL ?? `${N8N_BASE}/webhook/saveScan`,
+  historyInquire: import.meta.env.VITE_N8N_HISTORY_URL ?? `${N8N_BASE}/webhook/historyInquire`,
+  chat: import.meta.env.VITE_N8N_CHAT_URL ?? `${N8N_BASE}/webhook/chat`,
+};
+
 function proxyUrl(target: N8nTarget): string {
-  return `${PROXY_BASE}?target=${encodeURIComponent(target)}`;
+  return TARGET_URLS[target];
 }
 
 function proxyHeaders(extra?: Record<string, string>): Record<string, string> {
-  const base: Record<string, string> = {};
-  if (SUPABASE_ANON_KEY) {
-    base["apikey"] = SUPABASE_ANON_KEY;
-    base["Authorization"] = `Bearer ${SUPABASE_ANON_KEY}`;
-  }
-  return { ...base, ...(extra ?? {}) };
+  return { ...(extra ?? {}) };
 }
 
 export interface CallN8nOptions {
