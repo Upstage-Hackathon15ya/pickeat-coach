@@ -6,6 +6,7 @@ import { Mascot } from "@/components/Mascot";
 import { scanNutrition } from "@/lib/n8n";
 import { N8nError } from "@/lib/n8n";
 import { ensureLoadedDataUrl, mergeImagesVertically, ImageNotLoadedError } from "@/lib/image";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/analyze/loading")({
   component: Loading,
@@ -83,9 +84,12 @@ function Loading() {
         }
         const image_merged = mergedDataUrl.split(",")[1] ?? "";
 
+        const { data: { session } } = await supabase.auth.getSession();
+
         const result = await scanNutrition({
           image: image_merged,
           health_goal: userHealthGoal,
+          user_id: session?.user?.id ?? undefined,
         });
         if (!result || result.success === false) {
           setErrorMsg(FAIL_MSG);
