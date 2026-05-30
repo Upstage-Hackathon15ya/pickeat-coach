@@ -15,6 +15,7 @@ export const Route = createFileRoute("/analyze/loading")({
 
 const FAIL_MSG = "분석에 실패했어요. 다시 시도해주세요";
 const SERVER_MSG = "분석 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.";
+const LOGIN_MSG = "로그인이 필요합니다.";
 
 function Loading() {
   const navigate = useNavigate();
@@ -25,27 +26,19 @@ function Loading() {
     if (ran.current) return;
     ran.current = true;
 
-    try {
-      sessionStorage.removeItem("analyze.result");
-      sessionStorage.removeItem("analyze.error");
-    } catch {
-      // ignore
-    }
+    sessionStorage.removeItem("analyze.result");
+    sessionStorage.removeItem("analyze.error");
 
-    const read = (k: string) => {
-      try { return sessionStorage.getItem(k); } catch { return null; }
-    };
+    const read = (k: string) => sessionStorage.getItem(k);
+
     const raw_nutrition = read("scan.image.nutrition");
     const raw_ingredients = read("scan.image.ingredients");
-
-    console.log("raw_nutrition 길이:", raw_nutrition?.length);
-    console.log("raw_ingredients 길이:", raw_ingredients?.length);
 
     if (!raw_nutrition || !raw_ingredients) {
       const msg = "이미지 촬영을 다시 시도해주세요";
       setErrorMsg(msg);
       toast.error(msg);
-      try { sessionStorage.setItem("analyze.error", msg); } catch {}
+      sessionStorage.setItem("analyze.error", msg);
       return;
     }
 
@@ -56,73 +49,71 @@ function Loading() {
         const parsed = JSON.parse(raw);
         userHealthGoal = parsed?.label ?? parsed?.id ?? "";
       }
-    } catch {
-      // ignore
-    }
+    } catch {}
 
     (async () => {
       try {
-        // Image 객체 onload 후 canvas 로 재-그려 placeholder 가 아닌 실제 픽셀
-        // 데이터가 들어있는지 검증한다. naturalWidth === 0 이면 throw.
+        // 1. 이미지 로딩 검증
         const nutritionDataUrl = await ensureLoadedDataUrl(
           raw_nutrition.startsWith("data:") ? raw_nutrition : `data:image/jpeg;base64,${raw_nutrition}`,
         );
+
         const ingredientsDataUrl = await ensureLoadedDataUrl(
           raw_ingredients.startsWith("data:") ? raw_ingredients : `data:image/jpeg;base64,${raw_ingredients}`,
         );
 
-        // 원재료표(위) + 영양성분표(아래) 를 하나의 이미지로 합쳐 n8n 으로 전송
-        const mergedDataUrl = await mergeImagesVertically(
-          ingredientsDataUrl,
-          nutritionDataUrl,
-          "image/jpeg",
-          0.9,
-        );
-        try {
-          sessionStorage.setItem("scan.image.merged", mergedDataUrl);
-        } catch {
-          // ignore
-        }
+        // 2. 이미지 합치기
+        const mergedDataUrl = await mergeImagesVertically(ingredientsDataUrl, nutritionDataUrl, "image/jpeg", 0.9);
+
+        sessionStorage.setItem("scan.image.merged", mergedDataUrl);
+
         const image_merged = mergedDataUrl.split(",")[1] ?? "";
 
-        let resolvedUserId: string | undefined = getUserId() ?? undefined;
-        if (!resolvedUserId) {
-          try {
-            const { data: { session } } = await supabase.auth.getSession();
-            resolvedUserId = session?.user?.id ?? undefined;
-          } catch {
-            // ignore
-          }
-        }
-        console.log("[analyze] user_id 전송:", resolvedUserId);
+        // 3. user_id 안전하게 확보
+        let resolvedUserId: string | null = getUserId();
 
+        if (!resolvedUserId) {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+          resolvedUserId = session?.user?.id ?? null;
+        }
+
+        if (!resolvedUserId) {
+          setErrorMsg(LOGIN_MSG);
+          toast.error(LOGIN_MSG);
+          return;
+        }
+
+        console.log("[n8n] user_id:", resolvedUserId);
+
+        // 4. n8n 호출 (절대 undefined 금지)
         const result = await scanNutrition({
           image: image_merged,
           health_goal: userHealthGoal,
           user_id: resolvedUserId,
         });
-        if (!result || result.success === false) {
+
+        if (!result?.success) {
           setErrorMsg(FAIL_MSG);
           toast.error(FAIL_MSG);
-          try { sessionStorage.setItem("analyze.error", FAIL_MSG); } catch {}
+          sessionStorage.setItem("analyze.error", FAIL_MSG);
           return;
         }
-        try {
-          sessionStorage.setItem("analyze.result", JSON.stringify(result));
-        } catch {
-          // ignore
-        }
+
+        sessionStorage.setItem("analyze.result", JSON.stringify(result));
         navigate({ to: "/analyze/result" });
       } catch (e) {
-        const msg = e instanceof ImageNotLoadedError
-          ? "이미지가 아직 로드되지 않았습니다. 다시 시도해주세요"
-          : e instanceof N8nError
-          ? SERVER_MSG
-          : FAIL_MSG;
-        try { sessionStorage.setItem("analyze.error", msg); } catch {}
+        const msg =
+          e instanceof ImageNotLoadedError
+            ? "이미지가 아직 로드되지 않았습니다. 다시 시도해주세요"
+            : e instanceof N8nError
+              ? SERVER_MSG
+              : FAIL_MSG;
+
         setErrorMsg(msg);
         toast.error(msg);
-        void e;
+        sessionStorage.setItem("analyze.error", msg);
       }
     })();
   }, [navigate]);
@@ -146,10 +137,15 @@ function Loading() {
         </div>
 
         <h2 className="mt-8 text-[20px] font-extrabold tracking-tight">
-          픽잇이 성분표를<br />분석하고 있어요
+          픽잇이 성분표를
+          <br />
+          분석하고 있어요
         </h2>
+
         <p className="mt-3 text-[14px] text-muted-foreground leading-relaxed">
-          영양성분과 원재료명을<br />함께 확인하는 중이에요
+          영양성분과 원재료명을
+          <br />
+          함께 확인하는 중이에요
         </p>
 
         {errorMsg && (
