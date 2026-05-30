@@ -6,6 +6,9 @@ import { AlertTriangle, Sparkles, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/analyze/result")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    from: typeof search.from === "string" ? search.from : undefined,
+  }),
   component: Result,
 });
 
@@ -46,6 +49,8 @@ const MOCK = {
 
 function Result() {
   const navigate = useNavigate();
+  const { from } = Route.useSearch();
+  const isFromHome = from === "home";
   const d = MOCK;
 
   return (
@@ -180,7 +185,15 @@ function Result() {
       </main>
 
       <div className="sticky bottom-0 bg-background/95 backdrop-blur px-5 pt-3 pb-6 border-t border-border">
-        <div className="flex flex-col gap-2">
+        {isFromHome ? (
+          <button
+            onClick={() => navigate({ to: "/home" })}
+            className="h-14 w-full rounded-2xl bg-surface border border-border text-[14px] font-medium grid place-items-center"
+          >
+            이전으로
+          </button>
+        ) : (
+          <div className="flex flex-col gap-2">
           <button
             onClick={() => navigate({ to: "/analyze/saved" })}
             className="h-14 rounded-2xl bg-primary text-primary-foreground text-[15px] font-semibold grid place-items-center"
@@ -193,7 +206,8 @@ function Result() {
           >
             홈으로 가기
           </button>
-        </div>
+          </div>
+        )}
       </div>
     </AppShell>
   );
