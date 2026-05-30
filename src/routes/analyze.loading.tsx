@@ -99,7 +99,7 @@ function Loading() {
         const result = await scanNutrition({
           image: image_merged,
           health_goal: userHealthGoal,
-          user_id,
+          user_id: user_id,
         });
 
         // 6. 결과 체크
