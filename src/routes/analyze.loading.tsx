@@ -7,6 +7,7 @@ import { scanNutrition } from "@/lib/n8n";
 import { N8nError } from "@/lib/n8n";
 import { ensureLoadedDataUrl, mergeImagesVertically, ImageNotLoadedError } from "@/lib/image";
 import { supabase } from "@/integrations/supabase/client";
+import { getUserId } from "@/lib/api";
 
 export const Route = createFileRoute("/analyze/loading")({
   component: Loading,
@@ -84,12 +85,21 @@ function Loading() {
         }
         const image_merged = mergedDataUrl.split(",")[1] ?? "";
 
-        const { data: { session } } = await supabase.auth.getSession();
+        let resolvedUserId: string | undefined = getUserId() ?? undefined;
+        if (!resolvedUserId) {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            resolvedUserId = session?.user?.id ?? undefined;
+          } catch {
+            // ignore
+          }
+        }
+        console.log("[analyze] user_id 전송:", resolvedUserId);
 
         const result = await scanNutrition({
           image: image_merged,
           health_goal: userHealthGoal,
-          user_id: session?.user?.id ?? undefined,
+          user_id: resolvedUserId,
         });
         if (!result || result.success === false) {
           setErrorMsg(FAIL_MSG);
