@@ -19,6 +19,11 @@ function persistInfo(gender: string, ageNum: number) {
       "eatfit.user",
       JSON.stringify({ ...prev, gender, age: ageNum }),
     );
+    // 온보딩 완료 단계에서 백엔드로 전송할 수 있도록 별도 키로도 저장
+    localStorage.setItem(
+      "onboarding.info",
+      JSON.stringify({ gender, age: ageNum }),
+    );
   } catch {}
 }
 
