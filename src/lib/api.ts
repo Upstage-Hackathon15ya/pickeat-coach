@@ -243,15 +243,40 @@ export interface SignupResponse {
   [k: string]: unknown;
 }
 export async function signup(payload: SignupPayload): Promise<SignupResponse> {
-  const res = await request<SignupResponse>(ENDPOINTS.signup, {
-    user_email: payload.email,
+  const email = payload.email.trim();
+  const name = payload.name.trim();
+  const stableUserId = stableUserIdForEmail(email.toLowerCase());
+  const signupPayload = {
+    user_Id: stableUserId,
+    user_id: stableUserId,
+    userId: stableUserId,
+    user_email: email,
+    userEmail: email,
+    email,
     user_password: payload.password,
-    user_name: payload.name,
-  });
+    password: payload.password,
+    user_name: name,
+    userName: name,
+    name,
+    action: "signup",
+    event_type: "user_signup",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  let res: SignupResponse;
+  try {
+    res = await request<SignupResponse>(ENDPOINTS.signup, signupPayload);
+  } catch (err) {
+    if (err instanceof ApiError || err instanceof N8nError) {
+      res = await callN8n<SignupResponse>("signup", signupPayload);
+    } else {
+      throw err;
+    }
+  }
   // 회원가입 시 입력한 이름을 항상 저장 (백엔드 응답 형태와 무관하게).
   const objects = collectObjects(res);
   const userId = pickFromObjects(objects, "userId", "user_Id", "user_id", "id", "uuid");
-  setStoredUser({ name: payload.name, email: payload.email, ...(userId ? { userId } : {}) });
+  setStoredUser({ name, email, userId: userId ?? stableUserId });
   if (res?.token) setStoredToken(res.token);
   return res ?? {};
 }

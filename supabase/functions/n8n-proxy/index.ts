@@ -4,6 +4,7 @@
 const N8N_BASE = "https://upstage15.app.n8n.cloud";
 
 const TARGETS: Record<string, string> = {
+  signup: `${N8N_BASE}/webhook/signup`,
   scan: `${N8N_BASE}/webhook/5a5d0582-174a-46c2-a903-a213dc8311a4`,
   onboarding: `${N8N_BASE}/webhook/onboarding`,
   saveIntake: `${N8N_BASE}/webhook/saveIntake`,
