@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { TopBar } from "@/components/TopBar";
 import { cn } from "@/lib/utils";
-import { Minus, Plus } from "lucide-react";
+import { syncOnboardingFromStorage, ApiError } from "@/lib/api";
+import { Loader2, Minus, Plus } from "lucide-react";
 
 const numericItems = ["당류", "나트륨", "탄수화물", "포화지방", "단백질"] as const;
 const detectItems = ["대체당", "첨가물"] as const;
@@ -58,6 +59,7 @@ function FocusEdit() {
   const [sel, setSel] = useState<Key[]>([]);
   const [values, setValues] = useState<Record<string, number>>(defaultValues);
   const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     try {
@@ -132,9 +134,19 @@ function FocusEdit() {
 
   // Note: do NOT auto-persist while editing. Only persist on explicit save (handleDone).
 
-  const handleDone = () => {
+  const handleDone = async () => {
+    if (saving) return;
     persist();
-    router.history.back();
+    setSaving(true);
+    try {
+      await syncOnboardingFromStorage();
+      toast("집중 관리 성분이 저장되었어요.");
+      router.history.back();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "저장에 실패했어요. 다시 시도해주세요.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -207,9 +219,10 @@ function FocusEdit() {
 
         <button
           onClick={handleDone}
-          className="h-14 mt-6 rounded-2xl bg-primary text-primary-foreground text-base font-semibold"
+          disabled={saving}
+          className="h-14 mt-6 rounded-2xl bg-primary text-primary-foreground text-base font-semibold disabled:opacity-70"
         >
-          변경 완료
+          {saving ? <span className="inline-flex items-center justify-center gap-2"><Loader2 className="size-4 animate-spin" /> 저장 중…</span> : "변경 완료"}
         </button>
       </div>
     </AppShell>
