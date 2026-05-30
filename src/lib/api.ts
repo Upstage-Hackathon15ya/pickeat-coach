@@ -332,7 +332,7 @@ export function buildOnboardingPayload(): OnboardingPayload {
   const restrictedAll = Array.from(new Set([...restrictedSelected, ...restrictedCustom]));
   const gender = info.gender ?? user.gender ?? null;
   const age = info.age ?? user.age ?? null;
-  const userId = user.userId ?? getUserId();
+  const userId = firstString(user.userId, user.user_Id, user.user_id, getUserId());
   const healthGoalId = healthGoal?.id ?? healthGoal?.label ?? null;
   const healthGoalLabel = healthGoal?.label ?? null;
 
@@ -374,10 +374,12 @@ export function buildOnboardingPayload(): OnboardingPayload {
 export async function submitOnboarding(payload: OnboardingPayload) {
   const userId = firstString(payload.userId, payload.user_Id, payload.user_id, getUserId());
   return request(ENDPOINTS.onboarding, {
+    ...payload,
+    action: "update",
+    event_type: "onboarding_update",
     user_Id: userId,
     user_id: userId,
     userId,
-    ...payload,
   });
 }
 
