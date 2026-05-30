@@ -172,7 +172,17 @@ export async function signup(payload: SignupPayload): Promise<SignupResponse> {
     user_password: payload.password,
     user_name: payload.name,
   });
-  if (res?.userId) setStoredUser({ userId: res.userId, name: payload.name, email: payload.email });
+  // 회원가입 시 입력한 이름을 항상 저장 (백엔드 응답 형태와 무관하게).
+  const r = (res ?? {}) as Record<string, unknown>;
+  const u = (r.user ?? {}) as Record<string, unknown>;
+  const userId =
+    (r.userId as string | undefined) ??
+    (r.user_Id as string | undefined) ??
+    (r.user_id as string | undefined) ??
+    (u.userId as string | undefined) ??
+    (u.user_Id as string | undefined) ??
+    (u.user_id as string | undefined);
+  setStoredUser({ name: payload.name, email: payload.email, ...(userId ? { userId } : {}) });
   if (res?.token) setStoredToken(res.token);
   return res ?? {};
 }
