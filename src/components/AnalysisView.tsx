@@ -225,7 +225,7 @@ export function AnalysisView() {
                   <span className="text-[13px] font-semibold">{r.name}</span>
                   <span className="text-[13px] text-muted-foreground">{r.value}</span>
                   <span className="justify-self-end">
-                    <StatusBadge tone={r.tone}>{r.status}</StatusBadge>
+                    <StatusBadge tone={r.tone} />
                   </span>
                 </li>
               ))}
@@ -244,9 +244,9 @@ export function AnalysisView() {
             <div className="mt-4">
               <div className="text-[11.5px] font-semibold text-foreground/80">성분 위험도</div>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                <RiskChip tone="ok">낮음 {data.risk.ok ?? 0}개</RiskChip>
+                <RiskChip tone="ok">안전 {data.risk.ok ?? 0}개</RiskChip>
                 <RiskChip tone="warn">주의 {data.risk.warn ?? 0}개</RiskChip>
-                <RiskChip tone="bad">피해야 함 {data.risk.bad ?? 0}개</RiskChip>
+                <RiskChip tone="bad">위험 {data.risk.bad ?? 0}개</RiskChip>
               </div>
             </div>
           )}
@@ -267,7 +267,7 @@ export function AnalysisView() {
                 {data.warningIngredients.map((r) => (
                   <li key={r.name} className="px-3.5 py-3">
                     <div className="flex items-center gap-2">
-                      <StatusBadge tone={r.tone ?? "warn"}>주의</StatusBadge>
+                      <StatusBadge tone={r.tone ?? "warn"} />
                       <span className="text-[13.5px] font-semibold">{r.name}</span>
                       {r.category && (
                         <span className="text-[11px] text-muted-foreground ml-auto">{r.category}</span>
@@ -328,16 +328,17 @@ function RiskChip({ children, tone }: { children: React.ReactNode; tone: Tone })
   );
 }
 
-function StatusBadge({ children, tone }: { children: React.ReactNode; tone: Tone }) {
+function StatusBadge({ tone }: { children?: React.ReactNode; tone: Tone }) {
   const styles =
     tone === "ok"
       ? "bg-success/15 text-success"
       : tone === "warn"
         ? "bg-warning/20 text-warning-foreground"
         : "bg-destructive/15 text-destructive";
+  const label = tone === "ok" ? "안전" : tone === "bad" ? "위험" : "주의";
   return (
     <span className={cn("text-[11px] font-semibold px-2 py-0.5 rounded-full", styles)}>
-      {children}
+      {label}
     </span>
   );
 }
