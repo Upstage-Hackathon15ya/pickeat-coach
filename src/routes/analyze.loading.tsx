@@ -101,6 +101,12 @@ function Loading() {
           image_length: image_merged.length,
         });
 
+        console.log("FINAL PAYLOAD:", {
+          image: image_merged,
+          health_goal: userHealthGoal,
+          user_id,
+        });
+
         // 4. n8n 호출
         const result = await scanNutrition({
           image: image_merged,
