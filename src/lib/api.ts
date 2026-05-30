@@ -395,7 +395,6 @@ export function buildOnboardingPayload(): OnboardingPayload {
     updated_at: new Date().toISOString(),
     info: { gender, age },
     goal,
-    healthGoal,
     focus,
     restricted,
   };
