@@ -1,7 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { TopBar } from "@/components/TopBar";
+import { login, ApiError, setStoredUser } from "@/lib/api";
+import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
   component: Login,
@@ -11,25 +14,36 @@ function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const canSubmit = email.trim() && password.trim();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || submitting) return;
+    setSubmitting(true);
     try {
-      const raw = localStorage.getItem("eatfit.user");
-      const prev = raw ? JSON.parse(raw) : {};
-      const userId =
-        prev.userId ??
-        (globalThis.crypto?.randomUUID?.() ??
-          `u_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`);
-      localStorage.setItem(
-        "eatfit.user",
-        JSON.stringify({ ...prev, userId, email: email.trim() }),
-      );
-    } catch {}
-    navigate({ to: "/home" });
+      await login({ email: email.trim(), password });
+      // userId 보장
+      const existing = (() => {
+        try { return JSON.parse(localStorage.getItem("eatfit.user") ?? "{}"); } catch { return {}; }
+      })();
+      if (!existing.userId) {
+        const fallbackId =
+          globalThis.crypto?.randomUUID?.() ??
+          `u_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+        setStoredUser({ userId: fallbackId, email: email.trim() });
+      } else {
+        setStoredUser({ email: email.trim() });
+      }
+      navigate({ to: "/home" });
+    } catch (err) {
+      const msg =
+        err instanceof ApiError ? err.message : "로그인에 실패했어요. 이메일과 비밀번호를 확인해주세요.";
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -72,10 +86,16 @@ function Login() {
 
         <button
           type="submit"
-          disabled={!canSubmit}
+          disabled={!canSubmit || submitting}
           className="w-full h-14 rounded-2xl bg-primary text-primary-foreground text-base font-semibold grid place-items-center active:scale-[0.99] transition-transform disabled:opacity-50 disabled:active:scale-100"
         >
-          로그인
+          {submitting ? (
+            <span className="inline-flex items-center gap-2">
+              <Loader2 className="size-4 animate-spin" /> 로그인 중…
+            </span>
+          ) : (
+            "로그인"
+          )}
         </button>
       </form>
     </AppShell>
