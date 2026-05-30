@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Mascot } from "@/components/Mascot";
 import { scanNutrition } from "@/lib/n8n";
+import { N8nError } from "@/lib/n8n";
 import { analyzeFood } from "@/lib/api";
 import { ensureLoadedDataUrl, mergeImagesVertically, ImageNotLoadedError } from "@/lib/image";
 
@@ -12,6 +13,7 @@ export const Route = createFileRoute("/analyze/loading")({
 });
 
 const FAIL_MSG = "분석에 실패했어요. 다시 시도해주세요";
+const SERVER_MSG = "분석 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.";
 
 function Loading() {
   const navigate = useNavigate();
@@ -112,6 +114,8 @@ function Loading() {
       } catch (e) {
         const msg = e instanceof ImageNotLoadedError
           ? "이미지가 아직 로드되지 않았습니다. 다시 시도해주세요"
+          : e instanceof N8nError
+          ? SERVER_MSG
           : FAIL_MSG;
         try { sessionStorage.setItem("analyze.error", msg); } catch {}
         setErrorMsg(msg);
