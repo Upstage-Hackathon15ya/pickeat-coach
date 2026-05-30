@@ -55,8 +55,13 @@ function My() {
         const goalRaw = localStorage.getItem("onboarding.healthGoal");
         const user = userRaw ? JSON.parse(userRaw) : {};
         const goal = goalRaw ? JSON.parse(goalRaw) : null;
+        const rawName = typeof user?.name === "string" ? user.name.trim() : "";
+        const cleanName =
+          rawName && !rawName.startsWith("=") && !rawName.includes("{{")
+            ? rawName
+            : "다임";
         setProfile({
-          name: user?.name ?? "다임",
+          name: cleanName,
           age: typeof user?.age === "number" ? user.age : null,
           healthGoal: goal?.label ?? null,
         });
