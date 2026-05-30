@@ -5,6 +5,7 @@ import { TopBar } from "@/components/TopBar";
 import { ImagePlus, RotateCcw, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fileToNormalizedDataUrl, ensureLoadedDataUrl } from "@/lib/image";
+import { saveScan } from "@/lib/api";
 
 export const Route = createFileRoute("/scan/upload")({
   component: ScanUpload,
@@ -178,6 +179,26 @@ function ScanUpload() {
         } catch {
           // ignore
         }
+      }
+      // 스캔 저장 (실패해도 분석 흐름은 계속)
+      try {
+        await saveScan({
+          scanData: {
+            ingredients: {
+              filename: files.ingredients?.name,
+              mimeType: files.ingredients?.type,
+              image: previews.ingredients,
+            },
+            nutrition: {
+              filename: files.nutrition?.name,
+              mimeType: files.nutrition?.type,
+              image: previews.nutrition,
+            },
+            capturedAt: new Date().toISOString(),
+          },
+        });
+      } catch {
+        // 무시: 분석 단계로 진행
       }
       try {
         sessionStorage.removeItem("analyze.result");
