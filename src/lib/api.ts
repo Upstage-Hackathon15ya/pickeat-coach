@@ -375,6 +375,13 @@ export function buildOnboardingPayload(): OnboardingPayload {
     healthGoalId,
     health_goal_label: healthGoalLabel,
     healthGoalLabel,
+    // n8n SQL이 기대하는 정확한 필드명 (UPDATE users SET ...)
+    healthGoal: healthGoalLabel ?? healthGoalId ?? null,
+    nutrientTargets: focusTargets ?? {},
+    care_nutrients: focusSelected,
+    care_limits: focusManagement ?? {},
+    avoid_allergens: restrictedSelected,
+    custom_avoid: restrictedCustom,
     focus_areas: focus ?? null,
     focusAreas: focus ?? null,
     focus_selected: focusSelected,
