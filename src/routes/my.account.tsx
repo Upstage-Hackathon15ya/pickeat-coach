@@ -45,10 +45,15 @@ function Account() {
 
   const handleSave = async () => {
     if (saving) return;
+    const cleanName = name.trim();
+    if (cleanName.startsWith("=") || cleanName.includes("{{")) {
+      toast.error("이름이 올바르지 않아요. 다시 입력해주세요.");
+      return;
+    }
     try {
       const raw = localStorage.getItem("eatfit.user");
       const prev = raw ? JSON.parse(raw) : {};
-      const next = { ...prev, name, email, password };
+      const next = { ...prev, name: cleanName, email, password };
       localStorage.setItem("eatfit.user", JSON.stringify(next));
     } catch {}
     setSaving(true);
