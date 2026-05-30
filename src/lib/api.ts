@@ -249,15 +249,8 @@ export async function signup(payload: SignupPayload): Promise<SignupResponse> {
     user_name: payload.name,
   });
   // 회원가입 시 입력한 이름을 항상 저장 (백엔드 응답 형태와 무관하게).
-  const r = (res ?? {}) as Record<string, unknown>;
-  const u = (r.user ?? {}) as Record<string, unknown>;
-  const userId =
-    (r.userId as string | undefined) ??
-    (r.user_Id as string | undefined) ??
-    (r.user_id as string | undefined) ??
-    (u.userId as string | undefined) ??
-    (u.user_Id as string | undefined) ??
-    (u.user_id as string | undefined);
+  const objects = collectObjects(res);
+  const userId = pickFromObjects(objects, "userId", "user_Id", "user_id", "id", "uuid");
   setStoredUser({ name: payload.name, email: payload.email, ...(userId ? { userId } : {}) });
   if (res?.token) setStoredToken(res.token);
   return res ?? {};
@@ -282,20 +275,9 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
     user_password: payload.password,
   });
   // 백엔드가 돌려주는 다양한 필드명에서 userId / name 을 추출한다.
-  const r = (res ?? {}) as Record<string, unknown>;
-  const u = (r.user ?? {}) as Record<string, unknown>;
-  const userId =
-    (r.userId as string | undefined) ??
-    (r.user_Id as string | undefined) ??
-    (r.user_id as string | undefined) ??
-    (u.userId as string | undefined) ??
-    (u.user_Id as string | undefined) ??
-    (u.user_id as string | undefined);
-  const name =
-    (r.user_name as string | undefined) ??
-    (r.name as string | undefined) ??
-    (u.user_name as string | undefined) ??
-    (u.name as string | undefined);
+  const objects = collectObjects(res);
+  const userId = pickFromObjects(objects, "userId", "user_Id", "user_id", "id", "uuid");
+  const name = pickFromObjects(objects, "user_name", "userName", "name");
   // 기존에 저장된 이름(회원가입 시 입력한 값)을 백엔드가 이름을 안 줄 때 보존.
   const prevName = getStoredUser()?.name;
   const finalName = name ?? prevName;
