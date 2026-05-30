@@ -72,3 +72,35 @@ export function assertImageLoaded(img: HTMLImageElement | null | undefined): ass
     throw new ImageNotLoadedError();
   }
 }
+
+/**
+ * 두 개의 dataURL 이미지를 세로로 이어붙여 하나의 dataURL 로 합친다.
+ * 너비는 두 이미지 중 더 큰 쪽에 맞추고, 작은 이미지는 비율을 유지한 채
+ * 가운데 정렬해 흰 배경 위에 그린다.
+ */
+export async function mergeImagesVertically(
+  topDataUrl: string,
+  bottomDataUrl: string,
+  mimeType = "image/jpeg",
+  quality = 0.9,
+): Promise<string> {
+  const [top, bottom] = await Promise.all([loadImage(topDataUrl), loadImage(bottomDataUrl)]);
+
+  const width = Math.max(top.naturalWidth, bottom.naturalWidth);
+  const topH = Math.round((top.naturalHeight * width) / top.naturalWidth);
+  const bottomH = Math.round((bottom.naturalHeight * width) / bottom.naturalWidth);
+  const height = topH + bottomH;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas 컨텍스트를 만들 수 없습니다");
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+  ctx.drawImage(top, 0, 0, width, topH);
+  ctx.drawImage(bottom, 0, topH, width, bottomH);
+
+  return canvas.toDataURL(mimeType, quality);
+}
