@@ -7,7 +7,7 @@
  * - 통일된 에러 처리: ApiError 클래스
  */
 
-const BASE_URL = "https://n8n-production-9196.up.railway.app/webhook";
+const BASE_URL = "https://upstage15.app.n8n.cloud/webhook";
 
 const ENDPOINTS = {
   signup: `${BASE_URL}/signup`,
@@ -167,7 +167,11 @@ export interface SignupResponse {
   [k: string]: unknown;
 }
 export async function signup(payload: SignupPayload): Promise<SignupResponse> {
-  const res = await request<SignupResponse>(ENDPOINTS.signup, payload);
+  const res = await request<SignupResponse>(ENDPOINTS.signup, {
+    user_email: payload.email,
+    user_password: payload.password,
+    user_name: payload.name,
+  });
   if (res?.userId) setStoredUser({ userId: res.userId, name: payload.name, email: payload.email });
   if (res?.token) setStoredToken(res.token);
   return res ?? {};
@@ -187,7 +191,10 @@ export interface LoginResponse {
   [k: string]: unknown;
 }
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
-  const res = await request<LoginResponse>(ENDPOINTS.login, payload);
+  const res = await request<LoginResponse>(ENDPOINTS.login, {
+    user_email: payload.email,
+    user_password: payload.password,
+  });
   const userId = res?.userId ?? res?.user?.userId;
   if (userId) setStoredUser({ ...(res?.user ?? {}), userId, email: payload.email });
   if (res?.token) setStoredToken(res.token);
@@ -203,7 +210,7 @@ export interface OnboardingPayload {
 }
 export async function submitOnboarding(payload: OnboardingPayload) {
   return request(ENDPOINTS.onboarding, {
-    userId: getUserId(),
+    user_Id: getUserId(),
     ...payload,
   });
 }
@@ -216,8 +223,8 @@ export interface SaveScanPayload {
 }
 export async function saveScan(payload: SaveScanPayload) {
   return request(ENDPOINTS.saveScan, {
-    userId: getUserId(),
-    ...payload,
+    user_Id: getUserId(),
+    scanData: payload.scanData,
   });
 }
 
@@ -225,12 +232,14 @@ export async function saveScan(payload: SaveScanPayload) {
 // 5. 음식 분석
 // ---------------------------------------------------------------------------
 export interface AnalyzeFoodPayload {
-  foodData: unknown;
+  food_id?: string;
+  foodData?: unknown;
 }
 export async function analyzeFood<T = unknown>(payload: AnalyzeFoodPayload): Promise<T> {
   return request<T>(ENDPOINTS.analyzedFood, {
-    userId: getUserId(),
-    ...payload,
+    user_Id: getUserId(),
+    food_id: payload.food_id,
+    foodData: payload.foodData,
   });
 }
 
@@ -238,17 +247,16 @@ export async function analyzeFood<T = unknown>(payload: AnalyzeFoodPayload): Pro
 // 6. 섭취 저장
 // ---------------------------------------------------------------------------
 export interface SaveIntakePayload {
-  foodId: string;
-  amount?: number;
-  mealType?: string;
-  date?: string;
+  foodId?: string;
+  food_Id?: string;
   [k: string]: unknown;
 }
 export async function saveIntake(payload: SaveIntakePayload) {
+  const { foodId, food_Id, ...rest } = payload;
   return request(ENDPOINTS.saveIntake, {
-    userId: getUserId(),
-    date: new Date().toISOString(),
-    ...payload,
+    user_Id: getUserId(),
+    food_Id: food_Id ?? foodId,
+    ...rest,
   });
 }
 
@@ -256,12 +264,14 @@ export async function saveIntake(payload: SaveIntakePayload) {
 // 7. 히스토리 조회
 // ---------------------------------------------------------------------------
 export interface HistoryInquirePayload {
+  food_id?: string;
+  scan_id?: string;
   startDate?: string;
   endDate?: string;
 }
 export async function inquireHistory<T = unknown>(payload: HistoryInquirePayload = {}): Promise<T> {
   return request<T>(ENDPOINTS.historyInquire, {
-    userId: getUserId(),
+    user_Id: getUserId(),
     ...payload,
   });
 }
