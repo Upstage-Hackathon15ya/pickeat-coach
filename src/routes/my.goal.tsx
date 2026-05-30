@@ -1,9 +1,11 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { TopBar } from "@/components/TopBar";
 import { cn } from "@/lib/utils";
-import { Scale, Droplet, Salad, HeartPulse, Dumbbell } from "lucide-react";
+import { syncOnboardingFromStorage, ApiError } from "@/lib/api";
+import { Scale, Droplet, Salad, HeartPulse, Dumbbell, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/my/goal")({
   component: GoalEdit,
@@ -20,6 +22,7 @@ const goals = [
 function GoalEdit() {
   const router = useRouter();
   const [sel, setSel] = useState("weight");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     try {
@@ -31,7 +34,8 @@ function GoalEdit() {
     } catch {}
   }, []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (saving) return;
     const picked = goals.find((g) => g.id === sel);
     if (picked) {
       try {
@@ -41,7 +45,16 @@ function GoalEdit() {
         );
       } catch {}
     }
-    router.history.back();
+    setSaving(true);
+    try {
+      await syncOnboardingFromStorage();
+      toast("건강 목표가 저장되었어요.");
+      router.history.back();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "저장에 실패했어요. 다시 시도해주세요.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -76,9 +89,10 @@ function GoalEdit() {
         <div className="flex-1 min-h-6" />
         <button
           onClick={handleSave}
+          disabled={saving}
           className="h-14 mt-6 rounded-2xl bg-primary text-primary-foreground text-base font-semibold"
         >
-          저장
+          {saving ? <span className="inline-flex items-center justify-center gap-2"><Loader2 className="size-4 animate-spin" /> 저장 중…</span> : "저장"}
         </button>
       </div>
     </AppShell>
