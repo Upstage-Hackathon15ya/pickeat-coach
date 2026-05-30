@@ -255,19 +255,47 @@ export function buildOnboardingPayload(): OnboardingPayload {
   const goal = readLocalJSON("onboarding.goal");
   const focus = readLocalJSON("onboarding.focus");
   const restricted = readLocalJSON("onboarding.restricted");
+  const focusData = focus && typeof focus === "object" ? (focus as Record<string, unknown>) : {};
+  const restrictedData = restricted && typeof restricted === "object" ? (restricted as Record<string, unknown>) : {};
+  const focusSelected = Array.isArray(focusData.sel) ? focusData.sel : [];
+  const focusTargets = focusData.targets ?? null;
+  const focusManagement = focusData.management ?? null;
+  const restrictedSelected = Array.isArray(restrictedData.sel) ? restrictedData.sel : [];
+  const restrictedCustom = Array.isArray(restrictedData.custom) ? restrictedData.custom : [];
+  const restrictedAll = Array.from(new Set([...restrictedSelected, ...restrictedCustom]));
   const gender = info.gender ?? user.gender ?? null;
   const age = info.age ?? user.age ?? null;
+  const userId = user.userId ?? getUserId();
+  const healthGoalId = healthGoal?.id ?? healthGoal?.label ?? null;
+  const healthGoalLabel = healthGoal?.label ?? null;
 
   return {
-    user_Id: user.userId ?? getUserId(),
+    user_Id: userId,
+    user_id: userId,
+    userId,
     user_name: user.name ?? null,
+    userName: user.name ?? null,
+    name: user.name ?? null,
     user_email: user.email ?? null,
+    userEmail: user.email ?? null,
+    email: user.email ?? null,
     gender,
     age,
-    health_goal: healthGoal?.id ?? healthGoal?.label ?? null,
-    health_goal_label: healthGoal?.label ?? null,
+    health_goal: healthGoalId,
+    healthGoalId,
+    health_goal_label: healthGoalLabel,
+    healthGoalLabel,
     focus_areas: focus ?? null,
+    focusAreas: focus ?? null,
+    focus_selected: focusSelected,
+    focus_targets: focusTargets,
+    focus_management: focusManagement,
     restricted_items: restricted ?? null,
+    restrictedItems: restricted ?? null,
+    restricted_selected: restrictedSelected,
+    restricted_custom: restrictedCustom,
+    restricted_all: restrictedAll,
+    updated_at: new Date().toISOString(),
     info: { gender, age },
     goal,
     healthGoal,
