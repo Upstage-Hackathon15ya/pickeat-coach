@@ -51,6 +51,21 @@ function Loading() {
       }
     } catch {}
 
+    // ✅ 핵심: user_id 안정적으로 가져오는 함수
+    const resolveUserId = async (): Promise<string> => {
+      const local = getUserId();
+      if (local) return String(local);
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const supaId = session?.user?.id;
+      if (!supaId) throw new Error("NO_USER");
+
+      return String(supaId);
+    };
+
     (async () => {
       try {
         // 1. 이미지 검증
@@ -69,40 +84,30 @@ function Loading() {
 
         const image_merged = mergedDataUrl.split(",")[1] ?? "";
 
-        // 3. user_id 확보
-        let resolvedUserId: string | null = getUserId();
+        // 3. user_id 안전 확보 (여기가 핵심)
+        let user_id: string;
 
-        if (!resolvedUserId) {
-          const {
-            data: { session },
-          } = await supabase.auth.getSession();
-          resolvedUserId = session?.user?.id ?? null;
-        }
-
-        // 4. 로그인 체크
-        if (!resolvedUserId) {
+        try {
+          user_id = await resolveUserId();
+        } catch {
           setErrorMsg(LOGIN_MSG);
           toast.error(LOGIN_MSG);
           return;
         }
 
-        const user_id = String(resolvedUserId);
-
-        // 🔥 DEBUG (필수)
         console.log("[n8n payload]", {
           user_id,
           health_goal: userHealthGoal,
-          image_length: image_merged?.length,
+          image_length: image_merged.length,
         });
 
-        // 5. n8n 호출 (절대 undefined 없음)
+        // 4. n8n 호출
         const result = await scanNutrition({
           image: image_merged,
           health_goal: userHealthGoal,
-          user_id: user_id,
+          user_id,
         });
 
-        // 6. 결과 체크
         if (!result?.success) {
           setErrorMsg(FAIL_MSG);
           toast.error(FAIL_MSG);
