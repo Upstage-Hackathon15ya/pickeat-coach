@@ -4,7 +4,7 @@ import { AppShell } from "@/components/AppShell";
 import { TopBar } from "@/components/TopBar";
 import { ImagePlus, RotateCcw, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fileToNormalizedDataUrl, ensureLoadedDataUrl } from "@/lib/image";
+import { fileToNormalizedDataUrl, ensureLoadedDataUrl, mergeImagesVertically } from "@/lib/image";
 import { saveScan } from "@/lib/api";
 
 export const Route = createFileRoute("/scan/upload")({
@@ -158,6 +158,10 @@ function ScanUpload() {
     setSubmitting(true);
     setError(null);
     try {
+      const normalized: Record<Slot, string> = {
+        ingredients: "",
+        nutrition: "",
+      };
       for (const slot of SLOTS) {
         const f = files[slot.key]!;
         const existing = previews[slot.key];
@@ -169,6 +173,7 @@ function ScanUpload() {
           setSubmitting(false);
           return;
         }
+        normalized[slot.key] = image;
         try {
           sessionStorage.setItem(slot.storageKey, image);
           sessionStorage.setItem(slot.mimeKey, f.type || "image/jpeg");
@@ -180,20 +185,31 @@ function ScanUpload() {
           // ignore
         }
       }
-      // 스캔 저장 (실패해도 분석 흐름은 계속)
+      // 두 이미지를 하나로 합쳐 저장 (원재료표 위 + 영양성분표 아래)
+      let mergedImage: string | null = null;
+      try {
+        mergedImage = await mergeImagesVertically(
+          normalized.ingredients,
+          normalized.nutrition,
+          "image/jpeg",
+          0.9,
+        );
+        try {
+          sessionStorage.setItem("scan.image.merged", mergedImage);
+          sessionStorage.setItem("scan.mimeType.merged", "image/jpeg");
+        } catch {
+          // ignore
+        }
+      } catch {
+        // 합치기 실패 시에도 개별 이미지로 계속 진행
+      }
+      // 스캔 저장 (실패해도 분석 흐름은 계속) — 합쳐진 이미지 한 장만 전송
       try {
         await saveScan({
           scanData: {
-            ingredients: {
-              filename: files.ingredients?.name,
-              mimeType: files.ingredients?.type,
-              image: previews.ingredients,
-            },
-            nutrition: {
-              filename: files.nutrition?.name,
-              mimeType: files.nutrition?.type,
-              image: previews.nutrition,
-            },
+            image: mergedImage,
+            mimeType: "image/jpeg",
+            filename: `scan-${Date.now()}.jpg`,
             capturedAt: new Date().toISOString(),
           },
         });

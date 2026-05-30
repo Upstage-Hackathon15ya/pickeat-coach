@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { Mascot } from "@/components/Mascot";
 import { scanNutrition } from "@/lib/n8n";
 import { analyzeFood } from "@/lib/api";
-import { ensureLoadedDataUrl, ImageNotLoadedError } from "@/lib/image";
+import { ensureLoadedDataUrl, mergeImagesVertically, ImageNotLoadedError } from "@/lib/image";
 
 export const Route = createFileRoute("/analyze/loading")({
   component: Loading,
@@ -64,22 +64,33 @@ function Loading() {
         const nutritionDataUrl = await ensureLoadedDataUrl(
           raw_nutrition.startsWith("data:") ? raw_nutrition : `data:image/jpeg;base64,${raw_nutrition}`,
         );
-        // ingredients 도 동일하게 검증 (현재 API 는 nutrition 만 전송하지만 placeholder 검증 목적).
-        await ensureLoadedDataUrl(
+        const ingredientsDataUrl = await ensureLoadedDataUrl(
           raw_ingredients.startsWith("data:") ? raw_ingredients : `data:image/jpeg;base64,${raw_ingredients}`,
         );
 
-        const image_nutrition = nutritionDataUrl.split(",")[1] ?? "";
+        // 원재료표(위) + 영양성분표(아래) 를 하나의 이미지로 합쳐 n8n 으로 전송
+        const mergedDataUrl = await mergeImagesVertically(
+          ingredientsDataUrl,
+          nutritionDataUrl,
+          "image/jpeg",
+          0.9,
+        );
+        try {
+          sessionStorage.setItem("scan.image.merged", mergedDataUrl);
+        } catch {
+          // ignore
+        }
+        const image_merged = mergedDataUrl.split(",")[1] ?? "";
 
         const result = await scanNutrition({
-          image: image_nutrition,
+          image: image_merged,
           health_goal: userHealthGoal,
         });
         // 백엔드 analyzedFood 호출 (보조) — 실패해도 기존 결과 사용
         try {
           await analyzeFood({
             foodData: {
-              image: image_nutrition,
+              image: image_merged,
               healthGoal: userHealthGoal,
             },
           });
