@@ -291,6 +291,13 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
   return res ?? {};
 }
 
+export function ensureStoredUserId(email?: string): string | null {
+  const user = getStoredUser() ?? {};
+  const userId = resolveUserId(user, { email: email ?? user.email });
+  if (userId) setStoredUser({ userId, email: email ?? user.email });
+  return userId ?? null;
+}
+
 // ---------------------------------------------------------------------------
 // 3. 온보딩
 // ---------------------------------------------------------------------------
@@ -365,14 +372,25 @@ export function buildOnboardingPayload(): OnboardingPayload {
 }
 
 export async function submitOnboarding(payload: OnboardingPayload) {
+  const userId = firstString(payload.userId, payload.user_Id, payload.user_id, getUserId());
   return request(ENDPOINTS.onboarding, {
-    user_Id: getUserId(),
+    user_Id: userId,
+    user_id: userId,
+    userId,
     ...payload,
   });
 }
 
 export async function syncOnboardingFromStorage() {
-  return submitOnboarding(buildOnboardingPayload());
+  const payload = buildOnboardingPayload();
+  try {
+    return await submitOnboarding(payload);
+  } catch (err) {
+    if (err instanceof ApiError || err instanceof N8nError) {
+      return callN8n("onboarding", payload);
+    }
+    throw err;
+  }
 }
 
 // ---------------------------------------------------------------------------
