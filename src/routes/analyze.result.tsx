@@ -1,9 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { TopBar } from "@/components/TopBar";
 import { Mascot } from "@/components/Mascot";
-import { AlertTriangle, Sparkles, ArrowRight } from "lucide-react";
+import { AlertTriangle, Sparkles, ArrowRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { saveIntake, ApiError } from "@/lib/api";
 
 export const Route = createFileRoute("/analyze/result")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -61,6 +64,24 @@ function Result() {
   const isFromHome = from === "home";
   const d = MOCK;
   const v = verdictDisplay[d.verdict.status];
+  const [savingIntake, setSavingIntake] = useState(false);
+
+  const handleEaten = async () => {
+    if (savingIntake) return;
+    setSavingIntake(true);
+    try {
+      await saveIntake({
+        foodId: d.product.name,
+        mealType: "snack",
+      });
+      navigate({ to: "/analyze/saved" });
+    } catch (err) {
+      const msg =
+        err instanceof ApiError ? err.message : "저장에 실패했어요. 다시 시도해주세요.";
+      toast.error(msg);
+      setSavingIntake(false);
+    }
+  };
 
   return (
     <AppShell>
@@ -204,10 +225,17 @@ function Result() {
         ) : (
           <div className="flex flex-col gap-2">
           <button
-            onClick={() => navigate({ to: "/analyze/saved" })}
-            className="h-14 rounded-2xl bg-primary text-primary-foreground text-[15px] font-semibold grid place-items-center"
+            onClick={handleEaten}
+            disabled={savingIntake}
+            className="h-14 rounded-2xl bg-primary text-primary-foreground text-[15px] font-semibold grid place-items-center disabled:opacity-70"
           >
-            먹었어요
+            {savingIntake ? (
+              <span className="inline-flex items-center gap-2">
+                <Loader2 className="size-4 animate-spin" /> 저장 중…
+              </span>
+            ) : (
+              "먹었어요"
+            )}
           </button>
           <button
             onClick={() => navigate({ to: "/home" })}
