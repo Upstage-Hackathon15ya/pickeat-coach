@@ -93,9 +93,9 @@ function ProteinShakeDetail() {
           <div className="mt-4">
             <div className="text-[11.5px] font-semibold text-foreground/80">성분 위험도</div>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              <RiskChip tone="ok">낮음 3개</RiskChip>
+              <RiskChip tone="ok">안전 3개</RiskChip>
               <RiskChip tone="warn">주의 2개</RiskChip>
-              <RiskChip tone="bad">피해야 함 0개</RiskChip>
+              <RiskChip tone="bad">위험 0개</RiskChip>
             </div>
           </div>
 
@@ -163,15 +163,19 @@ function RiskChip({ children, tone }: { children: React.ReactNode; tone: "ok" | 
   );
 }
 
-function StatusBadge({ children, tone }: { children: React.ReactNode; tone: "ok" | "warn" }) {
+function StatusBadge({ tone }: { children?: React.ReactNode; tone: "ok" | "warn" | "bad" }) {
   return (
     <span
       className={cn(
         "text-[11px] font-semibold px-2 py-0.5 rounded-full",
-        tone === "ok" ? "bg-success/15 text-success" : "bg-warning/20 text-warning-foreground"
+        tone === "ok"
+          ? "bg-success/15 text-success"
+          : tone === "bad"
+            ? "bg-destructive/15 text-destructive"
+            : "bg-warning/20 text-warning-foreground"
       )}
     >
-      {children}
+      {tone === "ok" ? "안전" : tone === "bad" ? "위험" : "주의"}
     </span>
   );
 }
