@@ -1,5 +1,6 @@
 import { Sparkles, ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Mascot } from "@/components/Mascot";
 import { cn } from "@/lib/utils";
 
@@ -52,38 +53,91 @@ function readAnalysis(): AnalysisData | null {
   }
 }
 
-const MOCK_ANALYSIS: AnalysisData = {
-  product: {
-    name: "참치마요 삼각김밥",
-    foodType: "간편식",
-    tags: ["간편식", "삼각김밥"],
+const MOCK_ANALYSES: AnalysisData[] = [
+  {
+    product: { name: "참치마요 삼각김밥", foodType: "간편식", tags: ["간편식", "삼각김밥"] },
+    verdict: "warn",
+    verdictTitle: "조금만 드세요",
+    verdictSub: "나트륨과 포화지방이 높은 편이에요.",
+    coach:
+      "식사 대용으로는 괜찮지만 나트륨 함량이 높은 편이에요. 오늘 다른 짠 음식과 함께 섭취하는 것은 피하는 것이 좋아요.",
+    nutrition: [
+      { name: "열량", value: "420kcal", status: "", tone: "warn" },
+      { name: "탄수화물", value: "46g", status: "", tone: "ok" },
+      { name: "단백질", value: "12g", status: "", tone: "ok" },
+      { name: "지방", value: "18g", status: "", tone: "warn" },
+      { name: "포화지방", value: "4.5g", status: "", tone: "warn" },
+      { name: "나트륨", value: "780mg", status: "", tone: "bad" },
+      { name: "당류", value: "4g", status: "", tone: "ok" },
+    ],
+    ingredientsText: "마요네즈, 참치, 정제소금, 혼합제제, 향미증진제",
+    risk: { ok: 2, warn: 2, bad: 1 },
+    warningIngredients: [
+      { name: "나트륨 높음", category: "영양", info: "1일 권장량의 약 39%에 해당해요.", tone: "bad" },
+      { name: "포화지방 주의", category: "영양", info: "포화지방 함량이 높은 편이에요.", tone: "warn" },
+      { name: "첨가물 포함", category: "첨가물", info: "향미증진제 등 가공 첨가물이 들어 있어요.", tone: "warn" },
+    ],
+    alternatives: [
+      { name: "닭가슴살 주먹밥", tag: "나트륨 낮음 · 단백질 높음" },
+      { name: "현미 참치 삼각김밥", tag: "식이섬유 높음 · 지방 낮음" },
+    ],
   },
-  verdict: "warn",
-  verdictTitle: "주의",
-  verdictSub: "조금만 드세요 · 나트륨과 지방 함량이 높은 편이에요.",
-  coach:
-    "식사 대용으로는 괜찮지만 나트륨 함량이 높은 편이에요. 오늘 다른 짠 음식과 함께 섭취하는 것은 피하는 것이 좋아요.",
-  nutrition: [
-    { name: "열량", value: "420kcal", status: "보통", tone: "warn" },
-    { name: "탄수화물", value: "46g", status: "보통", tone: "ok" },
-    { name: "단백질", value: "12g", status: "보통", tone: "ok" },
-    { name: "지방", value: "18g", status: "높음", tone: "warn" },
-    { name: "포화지방", value: "4.5g", status: "주의", tone: "warn" },
-    { name: "나트륨", value: "780mg", status: "높음", tone: "bad" },
-    { name: "당류", value: "4g", status: "낮음", tone: "ok" },
-  ],
-  ingredientsText: "마요네즈, 참치, 정제소금, 혼합제제, 향미증진제",
-  risk: { ok: 2, warn: 2, bad: 1 },
-  warningIngredients: [
-    { name: "나트륨 높음", category: "영양", info: "1일 권장량의 약 39%에 해당해요.", tone: "bad" },
-    { name: "포화지방 주의", category: "영양", info: "포화지방 함량이 높은 편이에요.", tone: "warn" },
-    { name: "첨가물 포함", category: "첨가물", info: "향미증진제 등 가공 첨가물이 들어 있어요.", tone: "warn" },
-  ],
-  alternatives: [
-    { name: "닭가슴살 주먹밥", tag: "나트륨 낮음 · 단백질 높음" },
-    { name: "현미 참치 삼각김밥", tag: "식이섬유 높음 · 지방 낮음" },
-  ],
-};
+  {
+    product: { name: "포카칩 오리지널", foodType: "과자", tags: ["과자", "스낵"] },
+    verdict: "warn",
+    verdictTitle: "조금만 드세요",
+    verdictSub: "나트륨과 지방 함량을 확인해보는 게 좋아요.",
+    coach:
+      "가끔 즐기는 간식으로는 괜찮지만, 한 봉지를 다 드시면 나트륨과 지방 섭취가 많아질 수 있어요.",
+    nutrition: [
+      { name: "열량", value: "340kcal", status: "", tone: "warn" },
+      { name: "탄수화물", value: "32g", status: "", tone: "ok" },
+      { name: "단백질", value: "3g", status: "", tone: "ok" },
+      { name: "지방", value: "22g", status: "", tone: "bad" },
+      { name: "포화지방", value: "8g", status: "", tone: "warn" },
+      { name: "나트륨", value: "320mg", status: "", tone: "warn" },
+      { name: "당류", value: "1g", status: "", tone: "ok" },
+    ],
+    ingredientsText: "감자, 식물성유지(팜올레인유), 정제소금, 향미증진제, 산화방지제",
+    risk: { ok: 1, warn: 3, bad: 1 },
+    warningIngredients: [
+      { name: "지방 높음", category: "영양", info: "튀김 가공으로 지방 함량이 높아요.", tone: "bad" },
+      { name: "팜올레인유", category: "유지", info: "포화지방 비율이 높은 편이에요.", tone: "warn" },
+      { name: "향미증진제", category: "첨가물", info: "맛을 강화하기 위해 사용돼요.", tone: "warn" },
+    ],
+    alternatives: [
+      { name: "고구마칩(에어프라이)", tag: "지방 낮음 · 식이섬유 풍부" },
+      { name: "구운 통곡물 크래커", tag: "통곡물 · 나트륨 낮음" },
+    ],
+  },
+  {
+    product: { name: "무가당 탄산수", foodType: "탄산음료", tags: ["음료", "제로슈가"] },
+    verdict: "ok",
+    verdictTitle: "괜찮아요",
+    verdictSub: "당류와 나트륨 부담이 낮은 편이에요.",
+    coach:
+      "당과 칼로리 부담이 없어 갈증 해소에 좋아요. 식사 중에도 부담 없이 즐길 수 있어요.",
+    nutrition: [
+      { name: "열량", value: "0kcal", status: "", tone: "ok" },
+      { name: "탄수화물", value: "0g", status: "", tone: "ok" },
+      { name: "단백질", value: "0g", status: "", tone: "ok" },
+      { name: "지방", value: "0g", status: "", tone: "ok" },
+      { name: "나트륨", value: "10mg", status: "", tone: "ok" },
+      { name: "당류", value: "0g", status: "", tone: "ok" },
+    ],
+    ingredientsText: "정제수, 이산화탄소",
+    risk: { ok: 2, warn: 0, bad: 0 },
+    warningIngredients: [],
+    alternatives: [
+      { name: "보리차", tag: "디카페인 · 부드러운 곡물차" },
+      { name: "레몬워터", tag: "비타민C · 칼로리 0" },
+    ],
+  },
+];
+
+function pickRandomMock(): AnalysisData {
+  return MOCK_ANALYSES[Math.floor(Math.random() * MOCK_ANALYSES.length)];
+}
 
 function normalize(input: any): AnalysisData | null {
   if (!input || typeof input !== "object") return null;
@@ -150,7 +204,13 @@ export function AnalysisView() {
   const [data, setData] = useState<AnalysisData | undefined>(undefined);
 
   useEffect(() => {
-    setData(readAnalysis() ?? MOCK_ANALYSIS);
+    const loaded = readAnalysis();
+    if (loaded) {
+      setData(loaded);
+    } else {
+      setData(pickRandomMock());
+      toast("분석 결과를 불러오지 못해 예시 결과를 보여드려요.");
+    }
   }, []);
 
   if (data === undefined) {
