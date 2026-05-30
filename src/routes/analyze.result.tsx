@@ -131,7 +131,7 @@ function Result() {
           <div className="mt-4">
             <div className="text-[11.5px] font-semibold text-foreground/80">성분 위험도</div>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              <RiskChip tone="ok">낮음 {d.risk.ok}개</RiskChip>
+              <RiskChip tone="ok">안전 {d.risk.ok}개</RiskChip>
               <RiskChip tone="warn">주의 {d.risk.warn}개</RiskChip>
               <RiskChip tone="bad">위험 {d.risk.bad}개</RiskChip>
             </div>
@@ -227,18 +227,17 @@ function RiskChip({ children, tone }: { children: React.ReactNode; tone: "ok" | 
   );
 }
 
-function StatusBadge({ children, tone }: { children: React.ReactNode; tone: Tone }) {
+function StatusBadge({ tone }: { children?: React.ReactNode; tone: Tone }) {
   const styles =
     tone === "ok"
       ? "bg-success/15 text-success"
-      : tone === "warn"
-        ? "bg-warning/25 text-warning-foreground"
-        : tone === "check"
-          ? "bg-orange-100 text-orange-700"
-          : "bg-destructive/15 text-destructive";
+      : tone === "bad"
+        ? "bg-destructive/15 text-destructive"
+        : "bg-warning/25 text-warning-foreground";
+  const label = tone === "ok" ? "안전" : tone === "bad" ? "위험" : "주의";
   return (
     <span className={cn("text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap", styles)}>
-      {children}
+      {label}
     </span>
   );
 }
