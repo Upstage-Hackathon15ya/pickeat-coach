@@ -172,7 +172,17 @@ export async function signup(payload: SignupPayload): Promise<SignupResponse> {
     user_password: payload.password,
     user_name: payload.name,
   });
-  if (res?.userId) setStoredUser({ userId: res.userId, name: payload.name, email: payload.email });
+  // 회원가입 시 입력한 이름을 항상 저장 (백엔드 응답 형태와 무관하게).
+  const r = (res ?? {}) as Record<string, unknown>;
+  const u = (r.user ?? {}) as Record<string, unknown>;
+  const userId =
+    (r.userId as string | undefined) ??
+    (r.user_Id as string | undefined) ??
+    (r.user_id as string | undefined) ??
+    (u.userId as string | undefined) ??
+    (u.user_Id as string | undefined) ??
+    (u.user_id as string | undefined);
+  setStoredUser({ name: payload.name, email: payload.email, ...(userId ? { userId } : {}) });
   if (res?.token) setStoredToken(res.token);
   return res ?? {};
 }
@@ -195,8 +205,28 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
     user_email: payload.email,
     user_password: payload.password,
   });
-  const userId = res?.userId ?? res?.user?.userId;
-  if (userId) setStoredUser({ ...(res?.user ?? {}), userId, email: payload.email });
+  // 백엔드가 돌려주는 다양한 필드명에서 userId / name 을 추출한다.
+  const r = (res ?? {}) as Record<string, unknown>;
+  const u = (r.user ?? {}) as Record<string, unknown>;
+  const userId =
+    (r.userId as string | undefined) ??
+    (r.user_Id as string | undefined) ??
+    (r.user_id as string | undefined) ??
+    (u.userId as string | undefined) ??
+    (u.user_Id as string | undefined) ??
+    (u.user_id as string | undefined);
+  const name =
+    (r.user_name as string | undefined) ??
+    (r.name as string | undefined) ??
+    (u.user_name as string | undefined) ??
+    (u.name as string | undefined);
+  // 기존에 저장된 이름(회원가입 시 입력한 값)을 백엔드가 이름을 안 줄 때 보존.
+  const prevName = getStoredUser()?.name;
+  const finalName = name ?? prevName;
+  const next: StoredUser = { email: payload.email };
+  if (userId) next.userId = userId;
+  if (finalName) next.name = finalName;
+  setStoredUser(next);
   if (res?.token) setStoredToken(res.token);
   return res ?? {};
 }
