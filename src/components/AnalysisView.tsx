@@ -133,10 +133,70 @@ const MOCK_ANALYSES: AnalysisData[] = [
       { name: "레몬워터", tag: "비타민C · 칼로리 0" },
     ],
   },
+  {
+    product: { name: "초코칩 쿠키", foodType: "과자", tags: ["과자", "쿠키"] },
+    verdict: "bad",
+    verdictTitle: "오늘은 피해주세요",
+    verdictSub: "당류와 포화지방이 모두 높은 편이에요.",
+    coach:
+      "당과 포화지방이 높아 자주 드시면 부담될 수 있어요. 가끔, 소량만 즐기는 것을 추천해요.",
+    nutrition: [
+      { name: "열량", value: "480kcal", status: "", tone: "bad" },
+      { name: "탄수화물", value: "58g", status: "", tone: "warn" },
+      { name: "단백질", value: "5g", status: "", tone: "ok" },
+      { name: "지방", value: "24g", status: "", tone: "bad" },
+      { name: "포화지방", value: "12g", status: "", tone: "bad" },
+      { name: "나트륨", value: "260mg", status: "", tone: "warn" },
+      { name: "당류", value: "28g", status: "", tone: "bad" },
+    ],
+    ingredientsText: "밀가루, 설탕, 버터, 초코칩(코코아매스, 설탕, 식물성유지), 계란, 합성향료",
+    risk: { ok: 1, warn: 1, bad: 3 },
+    warningIngredients: [
+      { name: "당류 높음", category: "영양", info: "한 봉지에 28g의 당이 들어 있어요.", tone: "bad" },
+      { name: "포화지방 높음", category: "영양", info: "버터·식물성유지로 포화지방 비율이 높아요.", tone: "bad" },
+      { name: "합성향료", category: "첨가물", info: "맛과 향을 강화하기 위해 사용돼요.", tone: "warn" },
+    ],
+    alternatives: [
+      { name: "오트밀 쿠키", tag: "통곡물 · 당류 낮음" },
+      { name: "다크초콜릿 한 조각", tag: "당 낮음 · 포만감" },
+    ],
+  },
 ];
 
 function pickRandomMock(): AnalysisData {
   return MOCK_ANALYSES[Math.floor(Math.random() * MOCK_ANALYSES.length)];
+}
+
+export function findMockByName(name: string | undefined | null): AnalysisData | null {
+  if (!name) return null;
+  const trimmed = name.trim();
+  return (
+    MOCK_ANALYSES.find((m) => m.product?.name === trimmed) ??
+    MOCK_ANALYSES.find((m) => trimmed.includes(m.product?.name ?? "__") || (m.product?.name ?? "").includes(trimmed)) ??
+    null
+  );
+}
+
+function buildGenericMock(name: string, foodType?: string): AnalysisData {
+  return {
+    product: { name, foodType: foodType ?? "기록 식품", tags: foodType ? [foodType] : [] },
+    verdict: "warn",
+    verdictTitle: "참고용 분석",
+    verdictSub: "저장된 상세 분석이 없어 예시 데이터를 보여드려요.",
+    coach: `${name}에 대한 상세 분석은 아직 준비 중이에요. 식품 라벨을 다시 스캔하면 더 정확한 분석을 받아볼 수 있어요.`,
+    nutrition: [
+      { name: "열량", value: "-", status: "", tone: "ok" },
+      { name: "탄수화물", value: "-", status: "", tone: "ok" },
+      { name: "단백질", value: "-", status: "", tone: "ok" },
+      { name: "지방", value: "-", status: "", tone: "ok" },
+      { name: "나트륨", value: "-", status: "", tone: "ok" },
+      { name: "당류", value: "-", status: "", tone: "ok" },
+    ],
+    ingredientsText: "원재료 정보가 없어요.",
+    risk: { ok: 0, warn: 0, bad: 0 },
+    warningIngredients: [],
+    alternatives: [],
+  };
 }
 
 function normalize(input: any): AnalysisData | null {
@@ -200,10 +260,22 @@ function normalize(input: any): AnalysisData | null {
   };
 }
 
-export function AnalysisView() {
+export function AnalysisView({
+  fixedName,
+  fixedFoodType,
+}: {
+  fixedName?: string;
+  fixedFoodType?: string;
+} = {}) {
   const [data, setData] = useState<AnalysisData | undefined>(undefined);
 
   useEffect(() => {
+    if (fixedName) {
+      // History detail: use fixed mock based on the selected record title.
+      const match = findMockByName(fixedName);
+      setData(match ?? buildGenericMock(fixedName, fixedFoodType));
+      return;
+    }
     const loaded = readAnalysis();
     if (loaded) {
       setData(loaded);
@@ -211,7 +283,7 @@ export function AnalysisView() {
       setData(pickRandomMock());
       toast("분석 결과를 불러오지 못해 예시 결과를 보여드려요.");
     }
-  }, []);
+  }, [fixedName, fixedFoodType]);
 
   if (data === undefined) {
     return (

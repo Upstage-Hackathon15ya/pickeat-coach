@@ -214,6 +214,16 @@ function Row({ d }: { d: Item }) {
     <li>
       <Link
         {...linkProps}
+        onClick={() => {
+          try {
+            sessionStorage.setItem(
+              "history.selected",
+              JSON.stringify({ name: d.name, foodType: d.foodType, status: d.status }),
+            );
+          } catch {
+            // ignore
+          }
+        }}
         className="flex items-center gap-3 p-3.5 rounded-2xl bg-surface border border-border active:bg-muted/40"
       >
         <div className="flex-1 min-w-0">
