@@ -15,7 +15,7 @@ const SUPABASE_ANON_KEY =
 const PROXY_BASE = `${SUPABASE_URL}/functions/v1/n8n-proxy`;
 
 /** n8n Webhook 타겟 키 — Edge Function의 TARGETS 매핑과 일치해야 합니다. */
-export const N8N_TARGETS = ["scan", "onboarding", "saveIntake", "saveScan", "historyInquire", "chat"] as const;
+export const N8N_TARGETS = ["signup", "scan", "onboarding", "saveIntake", "saveScan", "historyInquire", "chat"] as const;
 export type N8nTarget = (typeof N8N_TARGETS)[number];
 
 function proxyUrl(target: N8nTarget): string {
