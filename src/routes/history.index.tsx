@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { BottomNav } from "@/components/BottomNav";
 import { cn } from "@/lib/utils";
-import { inquireHistory } from "@/lib/n8n";
+import { inquireHistory } from "@/lib/api";
 
 export const Route = createFileRoute("/history/")({
   component: History,
@@ -83,7 +83,14 @@ function History() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await inquireHistory<unknown>({});
+        // 기본 30일 범위로 조회
+        const end = new Date();
+        const start = new Date();
+        start.setDate(end.getDate() - 30);
+        const res = await inquireHistory<unknown>({
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+        });
         const arr = Array.isArray(res)
           ? res
           : Array.isArray((res as { items?: unknown })?.items)

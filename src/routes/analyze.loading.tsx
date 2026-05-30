@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Mascot } from "@/components/Mascot";
 import { scanNutrition } from "@/lib/n8n";
+import { analyzeFood } from "@/lib/api";
 import { ensureLoadedDataUrl, ImageNotLoadedError } from "@/lib/image";
 
 export const Route = createFileRoute("/analyze/loading")({
@@ -74,6 +75,17 @@ function Loading() {
           image: image_nutrition,
           health_goal: userHealthGoal,
         });
+        // 백엔드 analyzedFood 호출 (보조) — 실패해도 기존 결과 사용
+        try {
+          await analyzeFood({
+            foodData: {
+              image: image_nutrition,
+              healthGoal: userHealthGoal,
+            },
+          });
+        } catch {
+          // ignore
+        }
         if (!result || result.success === false) {
           setErrorMsg(FAIL_MSG);
           toast.error(FAIL_MSG);

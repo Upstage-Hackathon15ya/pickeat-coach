@@ -3,6 +3,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { TopBar } from "@/components/TopBar";
+import { signup, ApiError, setStoredUser } from "@/lib/api";
+import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/signup")({
   component: SignUp,
@@ -13,12 +15,13 @@ function SignUp() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const canSubmit = name.trim() && email.trim() && password.trim();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit || submitting) return;
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
@@ -37,16 +40,33 @@ function SignUp() {
       return;
     }
 
-    const userId =
-      (globalThis.crypto?.randomUUID?.() ??
-        `u_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`);
+    setSubmitting(true);
     try {
-      localStorage.setItem(
-        "eatfit.user",
-        JSON.stringify({ userId, name: name.trim(), email: email.trim() }),
-      );
-    } catch {}
-    navigate({ to: "/onboarding/info" });
+      await signup({
+        name: name.trim(),
+        email: email.trim(),
+        password,
+      });
+      // 서버가 userId를 돌려주지 않더라도 로컬 식별자를 보장
+      const existing = (() => {
+        try { return JSON.parse(localStorage.getItem("eatfit.user") ?? "{}"); } catch { return {}; }
+      })();
+      if (!existing.userId) {
+        const fallbackId =
+          globalThis.crypto?.randomUUID?.() ??
+          `u_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+        setStoredUser({ userId: fallbackId, name: name.trim(), email: email.trim() });
+      } else {
+        setStoredUser({ name: name.trim(), email: email.trim() });
+      }
+      navigate({ to: "/onboarding/info" });
+    } catch (err) {
+      const msg =
+        err instanceof ApiError ? err.message : "회원가입에 실패했어요. 잠시 후 다시 시도해주세요.";
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -101,10 +121,16 @@ function SignUp() {
 
         <button
           type="submit"
-          disabled={!canSubmit}
+          disabled={!canSubmit || submitting}
           className="w-full h-14 rounded-2xl bg-primary text-primary-foreground text-base font-semibold grid place-items-center active:scale-[0.99] transition-transform disabled:opacity-50 disabled:active:scale-100"
         >
-          가입하고 시작하기
+          {submitting ? (
+            <span className="inline-flex items-center gap-2">
+              <Loader2 className="size-4 animate-spin" /> 가입 중…
+            </span>
+          ) : (
+            "가입하고 시작하기"
+          )}
         </button>
       </form>
     </AppShell>
