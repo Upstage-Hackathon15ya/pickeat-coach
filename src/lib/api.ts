@@ -1,3 +1,5 @@
+import { callN8n, N8nError } from "@/lib/n8n";
+
 /**
  * 중앙화된 API 서비스
  *
@@ -24,6 +26,8 @@ const STORAGE_KEYS = {
   token: "eatfit.token",
 } as const;
 
+const USER_ID_BY_EMAIL_KEY = "eatfit.userIdsByEmail";
+
 export class ApiError extends Error {
   status?: number;
   body?: unknown;
@@ -41,9 +45,60 @@ export class ApiError extends Error {
 
 interface StoredUser {
   userId?: string;
+  user_Id?: string;
+  user_id?: string;
   name?: string;
   email?: string;
   [k: string]: unknown;
+}
+
+function firstString(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return undefined;
+}
+
+function normalizeEmail(email: unknown): string | undefined {
+  return typeof email === "string" && email.trim() ? email.trim().toLowerCase() : undefined;
+}
+
+function readUserIdMap(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(USER_ID_BY_EMAIL_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function rememberUserId(email: unknown, userId: unknown): void {
+  const key = normalizeEmail(email);
+  const id = firstString(userId);
+  if (!key || !id) return;
+  try {
+    localStorage.setItem(USER_ID_BY_EMAIL_KEY, JSON.stringify({ ...readUserIdMap(), [key]: id }));
+  } catch {
+    /* ignore */
+  }
+}
+
+function stableUserIdForEmail(email: string): string {
+  let hash = 5381;
+  for (let i = 0; i < email.length; i += 1) hash = (hash * 33) ^ email.charCodeAt(i);
+  return `email_${(hash >>> 0).toString(36)}`;
+}
+
+function resolveUserId(prev: StoredUser, incoming: StoredUser): string | undefined {
+  const email = normalizeEmail(incoming.email ?? prev.email);
+  const prevEmail = normalizeEmail(prev.email);
+  const incomingId = firstString(incoming.userId, incoming.user_Id, incoming.user_id);
+  const prevId = firstString(prev.userId, prev.user_Id, prev.user_id);
+  if (incomingId) return incomingId;
+  if (email && prevId && (!prevEmail || prevEmail === email)) return prevId;
+  if (email) return readUserIdMap()[email] ?? stableUserIdForEmail(email);
+  return prevId;
 }
 
 export function getStoredUser(): StoredUser | null {
@@ -58,7 +113,11 @@ export function getStoredUser(): StoredUser | null {
 export function setStoredUser(user: StoredUser): void {
   try {
     const prev = getStoredUser() ?? {};
-    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify({ ...prev, ...user }));
+    const next = { ...prev, ...user };
+    const userId = resolveUserId(prev, user);
+    if (userId) next.userId = userId;
+    rememberUserId(next.email, next.userId);
+    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(next));
   } catch {
     /* ignore */
   }
@@ -81,7 +140,8 @@ export function setStoredToken(token: string): void {
 }
 
 export function getUserId(): string | null {
-  return getStoredUser()?.userId ?? null;
+  const user = getStoredUser();
+  return firstString(user?.userId, user?.user_Id, user?.user_id) ?? null;
 }
 
 // ---------------------------------------------------------------------------
