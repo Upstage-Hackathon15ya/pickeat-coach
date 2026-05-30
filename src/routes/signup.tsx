@@ -3,7 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { TopBar } from "@/components/TopBar";
-import { signup, ApiError, setStoredUser } from "@/lib/api";
+import { signup, ApiError, ensureStoredUserId, setStoredUser } from "@/lib/api";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/signup")({
@@ -47,18 +47,8 @@ function SignUp() {
         email: email.trim(),
         password,
       });
-      // 서버가 userId를 돌려주지 않더라도 로컬 식별자를 보장
-      const existing = (() => {
-        try { return JSON.parse(localStorage.getItem("eatfit.user") ?? "{}"); } catch { return {}; }
-      })();
-      if (!existing.userId) {
-        const fallbackId =
-          globalThis.crypto?.randomUUID?.() ??
-          `u_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-        setStoredUser({ userId: fallbackId, name: name.trim(), email: email.trim() });
-      } else {
-        setStoredUser({ name: name.trim(), email: email.trim() });
-      }
+      ensureStoredUserId(email.trim());
+      setStoredUser({ name: name.trim(), email: email.trim() });
       navigate({ to: "/onboarding/info" });
     } catch (err) {
       const msg =

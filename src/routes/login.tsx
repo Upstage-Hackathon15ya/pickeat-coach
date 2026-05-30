@@ -3,7 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { TopBar } from "@/components/TopBar";
-import { login, ApiError, setStoredUser } from "@/lib/api";
+import { login, ApiError, ensureStoredUserId } from "@/lib/api";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/login")({
@@ -24,18 +24,7 @@ function Login() {
     setSubmitting(true);
     try {
       await login({ email: email.trim(), password });
-      // userId 보장
-      const existing = (() => {
-        try { return JSON.parse(localStorage.getItem("eatfit.user") ?? "{}"); } catch { return {}; }
-      })();
-      if (!existing.userId) {
-        const fallbackId =
-          globalThis.crypto?.randomUUID?.() ??
-          `u_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-        setStoredUser({ userId: fallbackId, email: email.trim() });
-      } else {
-        setStoredUser({ email: email.trim() });
-      }
+      ensureStoredUserId(email.trim());
       navigate({ to: "/home" });
     } catch (err) {
       const msg =

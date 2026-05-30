@@ -1,3 +1,5 @@
+import { callN8n, N8nError } from "@/lib/n8n";
+
 /**
  * 중앙화된 API 서비스
  *
@@ -24,6 +26,8 @@ const STORAGE_KEYS = {
   token: "eatfit.token",
 } as const;
 
+const USER_ID_BY_EMAIL_KEY = "eatfit.userIdsByEmail";
+
 export class ApiError extends Error {
   status?: number;
   body?: unknown;
@@ -41,9 +45,76 @@ export class ApiError extends Error {
 
 interface StoredUser {
   userId?: string;
+  user_Id?: string;
+  user_id?: string;
   name?: string;
   email?: string;
   [k: string]: unknown;
+}
+
+function firstString(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return undefined;
+}
+
+function collectObjects(value: unknown, depth = 0): Record<string, unknown>[] {
+  if (depth > 4 || !value) return [];
+  if (Array.isArray(value)) return value.flatMap((item) => collectObjects(item, depth + 1));
+  if (typeof value !== "object") return [];
+  const record = value as Record<string, unknown>;
+  return [record, ...Object.values(record).flatMap((item) => collectObjects(item, depth + 1))];
+}
+
+function pickFromObjects(objects: Record<string, unknown>[], ...keys: string[]): string | undefined {
+  for (const object of objects) {
+    const value = firstString(...keys.map((key) => object[key]));
+    if (value) return value;
+  }
+  return undefined;
+}
+
+function normalizeEmail(email: unknown): string | undefined {
+  return typeof email === "string" && email.trim() ? email.trim().toLowerCase() : undefined;
+}
+
+function readUserIdMap(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(USER_ID_BY_EMAIL_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function rememberUserId(email: unknown, userId: unknown): void {
+  const key = normalizeEmail(email);
+  const id = firstString(userId);
+  if (!key || !id) return;
+  try {
+    localStorage.setItem(USER_ID_BY_EMAIL_KEY, JSON.stringify({ ...readUserIdMap(), [key]: id }));
+  } catch {
+    /* ignore */
+  }
+}
+
+function stableUserIdForEmail(email: string): string {
+  let hash = 5381;
+  for (let i = 0; i < email.length; i += 1) hash = (hash * 33) ^ email.charCodeAt(i);
+  return `email_${(hash >>> 0).toString(36)}`;
+}
+
+function resolveUserId(prev: StoredUser, incoming: StoredUser): string | undefined {
+  const email = normalizeEmail(incoming.email ?? prev.email);
+  const prevEmail = normalizeEmail(prev.email);
+  const incomingId = firstString(incoming.userId, incoming.user_Id, incoming.user_id);
+  const prevId = firstString(prev.userId, prev.user_Id, prev.user_id);
+  if (incomingId) return incomingId;
+  if (email && prevId && (!prevEmail || prevEmail === email)) return prevId;
+  if (email) return readUserIdMap()[email] ?? stableUserIdForEmail(email);
+  return prevId;
 }
 
 export function getStoredUser(): StoredUser | null {
@@ -58,7 +129,11 @@ export function getStoredUser(): StoredUser | null {
 export function setStoredUser(user: StoredUser): void {
   try {
     const prev = getStoredUser() ?? {};
-    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify({ ...prev, ...user }));
+    const next = { ...prev, ...user };
+    const userId = resolveUserId(prev, user);
+    if (userId) next.userId = userId;
+    rememberUserId(next.email, next.userId);
+    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(next));
   } catch {
     /* ignore */
   }
@@ -81,7 +156,8 @@ export function setStoredToken(token: string): void {
 }
 
 export function getUserId(): string | null {
-  return getStoredUser()?.userId ?? null;
+  const user = getStoredUser();
+  return firstString(user?.userId, user?.user_Id, user?.user_id) ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -173,15 +249,8 @@ export async function signup(payload: SignupPayload): Promise<SignupResponse> {
     user_name: payload.name,
   });
   // 회원가입 시 입력한 이름을 항상 저장 (백엔드 응답 형태와 무관하게).
-  const r = (res ?? {}) as Record<string, unknown>;
-  const u = (r.user ?? {}) as Record<string, unknown>;
-  const userId =
-    (r.userId as string | undefined) ??
-    (r.user_Id as string | undefined) ??
-    (r.user_id as string | undefined) ??
-    (u.userId as string | undefined) ??
-    (u.user_Id as string | undefined) ??
-    (u.user_id as string | undefined);
+  const objects = collectObjects(res);
+  const userId = pickFromObjects(objects, "userId", "user_Id", "user_id", "id", "uuid");
   setStoredUser({ name: payload.name, email: payload.email, ...(userId ? { userId } : {}) });
   if (res?.token) setStoredToken(res.token);
   return res ?? {};
@@ -206,20 +275,9 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
     user_password: payload.password,
   });
   // 백엔드가 돌려주는 다양한 필드명에서 userId / name 을 추출한다.
-  const r = (res ?? {}) as Record<string, unknown>;
-  const u = (r.user ?? {}) as Record<string, unknown>;
-  const userId =
-    (r.userId as string | undefined) ??
-    (r.user_Id as string | undefined) ??
-    (r.user_id as string | undefined) ??
-    (u.userId as string | undefined) ??
-    (u.user_Id as string | undefined) ??
-    (u.user_id as string | undefined);
-  const name =
-    (r.user_name as string | undefined) ??
-    (r.name as string | undefined) ??
-    (u.user_name as string | undefined) ??
-    (u.name as string | undefined);
+  const objects = collectObjects(res);
+  const userId = pickFromObjects(objects, "userId", "user_Id", "user_id", "id", "uuid");
+  const name = pickFromObjects(objects, "user_name", "userName", "name");
   // 기존에 저장된 이름(회원가입 시 입력한 값)을 백엔드가 이름을 안 줄 때 보존.
   const prevName = getStoredUser()?.name;
   const finalName = name ?? prevName;
@@ -229,6 +287,13 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
   setStoredUser(next);
   if (res?.token) setStoredToken(res.token);
   return res ?? {};
+}
+
+export function ensureStoredUserId(email?: string): string | null {
+  const user = getStoredUser() ?? {};
+  const userId = resolveUserId(user, { email: email ?? user.email });
+  if (userId) setStoredUser({ userId, email: email ?? user.email });
+  return userId ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -249,7 +314,7 @@ function readLocalJSON<T = unknown>(key: string): T | null {
 }
 
 export function buildOnboardingPayload(): OnboardingPayload {
-  const user = readLocalJSON<{ userId?: string; name?: string; email?: string; gender?: string; age?: number }>("eatfit.user") ?? {};
+  const user = readLocalJSON<StoredUser & { gender?: string; age?: number }>("eatfit.user") ?? {};
   const info = readLocalJSON<{ gender?: string; age?: number }>("onboarding.info") ?? {};
   const healthGoal = readLocalJSON<{ id?: string; label?: string }>("onboarding.healthGoal");
   const goal = readLocalJSON("onboarding.goal");
@@ -265,7 +330,7 @@ export function buildOnboardingPayload(): OnboardingPayload {
   const restrictedAll = Array.from(new Set([...restrictedSelected, ...restrictedCustom]));
   const gender = info.gender ?? user.gender ?? null;
   const age = info.age ?? user.age ?? null;
-  const userId = user.userId ?? getUserId();
+  const userId = firstString(user.userId, user.user_Id, user.user_id, getUserId());
   const healthGoalId = healthGoal?.id ?? healthGoal?.label ?? null;
   const healthGoalLabel = healthGoal?.label ?? null;
 
@@ -305,14 +370,36 @@ export function buildOnboardingPayload(): OnboardingPayload {
 }
 
 export async function submitOnboarding(payload: OnboardingPayload) {
+  const userId = firstString(payload.userId, payload.user_Id, payload.user_id, getUserId());
   return request(ENDPOINTS.onboarding, {
-    user_Id: getUserId(),
     ...payload,
+    action: "update",
+    event_type: "onboarding_update",
+    user_Id: userId,
+    user_id: userId,
+    userId,
   });
 }
 
 export async function syncOnboardingFromStorage() {
-  return submitOnboarding(buildOnboardingPayload());
+  const payload = buildOnboardingPayload();
+  const userId = firstString(payload.userId, payload.user_Id, payload.user_id, getUserId());
+  const updatePayload = {
+    ...payload,
+    action: "update",
+    event_type: "onboarding_update",
+    user_Id: userId,
+    user_id: userId,
+    userId,
+  };
+  try {
+    return await submitOnboarding(updatePayload);
+  } catch (err) {
+    if (err instanceof ApiError || err instanceof N8nError) {
+      return callN8n("onboarding", updatePayload);
+    }
+    throw err;
+  }
 }
 
 // ---------------------------------------------------------------------------
