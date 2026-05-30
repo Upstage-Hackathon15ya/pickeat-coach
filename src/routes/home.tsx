@@ -319,9 +319,15 @@ function Home() {
           <ul className="space-y-2">
             {eaten.map((e) => {
               const b = badge[e.status];
+              const isZeroCola = e.name === "제로콜라 500ml";
               return (
                 <li key={e.name}>
-                  <Link to="/history/$id" params={{ id: "1" }} className="flex items-center gap-3 p-3.5 rounded-2xl bg-surface border border-border active:bg-muted/40">
+                  <Link
+                    to={isZeroCola ? "/analyze/result" : "/history/$id"}
+                    params={isZeroCola ? undefined : { id: "1" }}
+                    search={isZeroCola ? { from: "home" } : undefined}
+                    className="flex items-center gap-3 p-3.5 rounded-2xl bg-surface border border-border active:bg-muted/40"
+                  >
                     <div className="flex-1 min-w-0">
                       <div className="text-[14px] font-semibold truncate">{e.name}</div>
                       <div className="text-[11.5px] text-muted-foreground mt-0.5">{e.foodType} · {e.time}</div>
