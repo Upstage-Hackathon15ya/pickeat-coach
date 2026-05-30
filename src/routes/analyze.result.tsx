@@ -144,7 +144,7 @@ function Result() {
             <div className="grid grid-cols-[1.1fr_0.8fr_1.4fr] px-3.5 py-2 bg-muted/50 text-[11px] font-semibold text-muted-foreground">
               <span>성분</span>
               <span>분류</span>
-              <span>잇핏 픽잇</span>
+              <span>픽잇 한마디</span>
             </div>
             <ul className="divide-y divide-border/60">
               {d.warningIngredients.map((r) => (
