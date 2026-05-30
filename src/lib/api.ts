@@ -54,7 +54,13 @@ interface StoredUser {
 
 function firstString(...values: unknown[]): string | undefined {
   for (const value of values) {
-    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) continue;
+      // n8n 워크플로우에서 치환되지 않은 표현식(예: "={{$json[0].user_name}}")은 무시한다.
+      if (trimmed.startsWith("=") || trimmed.includes("{{")) continue;
+      return trimmed;
+    }
   }
   return undefined;
 }
