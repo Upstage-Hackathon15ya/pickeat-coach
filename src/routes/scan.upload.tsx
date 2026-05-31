@@ -5,7 +5,7 @@ import { TopBar } from "@/components/TopBar";
 import { ImagePlus, RotateCcw, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fileToNormalizedDataUrl, ensureLoadedDataUrl, mergeImagesVertically } from "@/lib/image";
-import { saveScan } from "@/lib/api";
+import { saveScanBinary } from "@/lib/api";
 
 export const Route = createFileRoute("/scan/upload")({
   component: ScanUpload,
@@ -203,16 +203,17 @@ function ScanUpload() {
       } catch {
         // 합치기 실패 시에도 개별 이미지로 계속 진행
       }
-      // 스캔 저장 (실패해도 분석 흐름은 계속) — 합쳐진 이미지 한 장만 전송
+      // 스캔 저장 (실패해도 분석 흐름은 계속) — 합쳐진 이미지를 binary(FormData)로 전송
       try {
-        await saveScan({
-          scanData: {
-            image: mergedImage,
-            mimeType: "image/jpeg",
+        if (mergedImage) {
+          const res = await fetch(mergedImage);
+          const blob = await res.blob();
+          await saveScanBinary({
+            file: blob,
             filename: `scan-${Date.now()}.jpg`,
             capturedAt: new Date().toISOString(),
-          },
-        });
+          });
+        }
       } catch {
         // 무시: 분석 단계로 진행
       }
