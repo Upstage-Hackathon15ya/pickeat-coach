@@ -476,6 +476,76 @@ export async function saveScan(payload: SaveScanPayload) {
   });
 }
 
+// FormData(binary) 방식으로 스캔 이미지 저장
+export interface SaveScanBinaryPayload {
+  file: Blob | File;
+  filename?: string;
+  capturedAt?: string;
+}
+export async function saveScanBinary(
+  payload: SaveScanBinaryPayload,
+  options: { timeoutMs?: number; signal?: AbortSignal } = {},
+): Promise<unknown> {
+  const { timeoutMs = 30_000, signal } = options;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  if (signal) {
+    if (signal.aborted) controller.abort();
+    else signal.addEventListener("abort", () => controller.abort(), { once: true });
+  }
+
+  const userId = getUserId() ?? "";
+  const formData = new FormData();
+  formData.append(
+    "image",
+    payload.file,
+    payload.filename ?? (payload.file instanceof File ? payload.file.name : `scan-${Date.now()}.jpg`),
+  );
+  formData.append("user_id", userId);
+  formData.append("user_Id", userId);
+  formData.append("userId", userId);
+  formData.append("captured_at", payload.capturedAt ?? new Date().toISOString());
+
+  // FormData: Content-Type 헤더는 브라우저가 boundary 포함해서 자동 설정해야 함
+  const headers: Record<string, string> = {};
+  const token = getStoredToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  try {
+    const res = await fetch(ENDPOINTS.saveScan, {
+      method: "POST",
+      headers,
+      body: formData,
+      signal: controller.signal,
+    });
+    const text = await res.text();
+    let data: unknown = undefined;
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = text;
+      }
+    }
+    if (!res.ok) {
+      throw new ApiError(
+        `요청 실패 (${res.status}): ${res.statusText || "서버 오류"}`,
+        res.status,
+        data,
+      );
+    }
+    return data;
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new ApiError("요청이 시간 초과되었어요. 다시 시도해주세요.");
+    }
+    throw new ApiError(err instanceof Error ? err.message : "네트워크 오류가 발생했어요.");
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // 5. 음식 분석
 // ---------------------------------------------------------------------------
